@@ -38,7 +38,7 @@ Detailed AWS account and S3 bucket security findings with severity classificatio
 ### Security Trend Over Time
 Historical trend visualization tracking PASS, WARNING, CRITICAL, and INFO findings across multiple scans to show how security posture changes over time.
 
-![Security Trend Over Time](screenshots/Security_Trend_Over_Time.png)
+![Security Trend Over Time](screenshots/Severity_Trend_Over_Time.png)
 
 ## Live Features
 
