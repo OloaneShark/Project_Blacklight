@@ -8,7 +8,21 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, ProfileNotFound
 
 from blacklight_security.reporting import render_console, render_json
-from blacklight_security.scanners.aws import S3Scanner
+from blacklight_security.scanners.aws import (
+    CloudTrailScanner,
+    EC2Scanner,
+    IAMScanner,
+    RDSScanner,
+    S3Scanner,
+)
+
+AWS_SCANNERS = {
+    "s3": S3Scanner,
+    "iam": IAMScanner,
+    "cloudtrail": CloudTrailScanner,
+    "ec2": EC2Scanner,
+    "rds": RDSScanner,
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="blacklight",
         description="Project Blacklight cloud security scanner",
     )
-    parser.add_argument("--version", action="version", version="Project Blacklight 0.1.0a1")
+    parser.add_argument("--version", action="version", version="Project Blacklight 0.1.0a2")
 
     commands = parser.add_subparsers(dest="command", required=True)
     scan = commands.add_parser("scan", help="Run deterministic security checks")
@@ -25,9 +39,9 @@ def build_parser() -> argparse.ArgumentParser:
     aws = providers.add_parser("aws", help="Scan AWS resources")
     aws.add_argument(
         "--service",
-        choices=["s3"],
-        default="s3",
-        help="AWS service to scan (currently: s3)",
+        choices=["all", *AWS_SCANNERS.keys()],
+        default="all",
+        help="AWS service to scan (default: all)",
     )
     aws.add_argument("--profile", help="AWS shared-credentials profile name")
     aws.add_argument("--region", help="AWS region override")
@@ -45,10 +59,10 @@ def build_parser() -> argparse.ArgumentParser:
 def _run_aws(args: argparse.Namespace) -> int:
     try:
         session = boto3.Session(profile_name=args.profile, region_name=args.region)
-        if args.service == "s3":
-            findings = S3Scanner(session).scan()
-        else:
-            raise ValueError(f"Unsupported AWS service: {args.service}")
+        scanner_names = list(AWS_SCANNERS) if args.service == "all" else [args.service]
+        findings = []
+        for name in scanner_names:
+            findings.extend(AWS_SCANNERS[name](session).scan())
     except (NoCredentialsError, ProfileNotFound) as error:
         print(f"Blacklight could not load AWS credentials: {error}", file=sys.stderr)
         return 2

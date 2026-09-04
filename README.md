@@ -8,19 +8,38 @@ Blacklight is being built to reveal security weaknesses that are easy to miss in
 
 ## Why Blacklight
 
-The original CloudGuard project began as a Flask-based AWS security dashboard. It already performs real checks against S3, IAM, CloudTrail, EC2, and RDS. Project Blacklight is the next stage: turning that work into a reusable open-source security tool that other people can install, run, fork, extend, and contribute to.
+The original CloudGuard project began as a Flask-based AWS security dashboard. It already performed real checks against S3, IAM, CloudTrail, EC2, and RDS. Project Blacklight is the next stage: turning that work into a reusable open-source security tool that other people can install, run, fork, extend, and contribute to.
 
 The old Flask dashboard files are temporarily retained while working security checks are migrated into the new package architecture.
 
 ## Current alpha capabilities
 
-The first migrated scanner targets Amazon S3 and checks:
+Blacklight currently scans:
 
-- S3 Block Public Access configuration
+### Amazon S3
+- Block Public Access configuration
 - Default server-side encryption
 - Versioning
 - Server access logging
 - AWS-evaluated public bucket policy status
+
+### AWS IAM
+- Root account MFA visibility
+- Active access-key age
+- Active access-key last-used activity
+
+### AWS CloudTrail
+- Trail presence
+- Active logging state
+- Multi-region configuration
+
+### Amazon EC2
+- Security groups with unrestricted all-port ingress
+- Public exposure of sensitive administration/database ports including SSH, RDP, MySQL, PostgreSQL, Redis, MongoDB, and Elasticsearch
+
+### Amazon RDS
+- Public database accessibility
+- Storage encryption
 
 Every result is normalized into a structured finding with a stable check ID, severity, evidence, and remediation guidance.
 
@@ -54,29 +73,33 @@ For example, configure an AWS CLI profile and then run Blacklight with that prof
 
 ```bash
 aws configure --profile my-security-audit
-blacklight scan aws --service s3 --profile my-security-audit
+blacklight scan aws --profile my-security-audit
 ```
 
 Use a least-privilege/read-only scanning identity whenever possible.
 
 ## Usage
 
-Console output:
+Scan the supported AWS services:
 
 ```bash
-blacklight scan aws --service s3
+blacklight scan aws
 ```
 
-Use a specific AWS profile and region:
+Scan one service:
 
 ```bash
-blacklight scan aws --service s3 --profile my-security-audit --region us-east-1
+blacklight scan aws --service iam
+blacklight scan aws --service s3
+blacklight scan aws --service cloudtrail
+blacklight scan aws --service ec2
+blacklight scan aws --service rds
 ```
 
 Generate structured JSON:
 
 ```bash
-blacklight scan aws --service s3 --format json --output reports/s3-scan.json
+blacklight scan aws --format json --output reports/aws-scan.json
 ```
 
 ## Architecture direction
@@ -88,26 +111,23 @@ blacklight_security/
 ├── reporting.py
 └── scanners/
     └── aws/
-        └── s3.py
+        ├── s3.py
+        ├── iam.py
+        ├── cloudtrail.py
+        ├── ec2.py
+        └── rds.py
 ```
 
 The scanner layer collects evidence and determines findings. Reporting consumes normalized findings. Future correlation and AI-assisted analysis will sit **after** detection rather than replacing it.
 
 ## Roadmap
 
-Next migration targets from the existing CloudGuard logic:
+Next priorities:
 
-- IAM access-key age and usage
-- Root account MFA visibility
-- CloudTrail configuration
-- EC2 security-group exposure
-- RDS public accessibility and encryption
-
-After the AWS foundation is stable:
-
-- Extensible scanner/check registration
-- Better risk scoring and deterministic finding correlation
-- Additional AWS services
+- Shared scanner/check registration so contributors can add modules without editing CLI internals
+- Read-only least-privilege IAM policy/documentation for Blacklight scans
+- Deterministic risk scoring and finding correlation
+- Additional AWS services and deeper checks
 - HTML reports
 - PyPI publishing
 - Versioned GitHub releases
