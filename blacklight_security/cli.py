@@ -7,22 +7,8 @@ from pathlib import Path
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, ProfileNotFound
 
+from blacklight_security.registry import scanner_names, scanner_specs
 from blacklight_security.reporting import render_console, render_json
-from blacklight_security.scanners.aws import (
-    CloudTrailScanner,
-    EC2Scanner,
-    IAMScanner,
-    RDSScanner,
-    S3Scanner,
-)
-
-AWS_SCANNERS = {
-    "s3": S3Scanner,
-    "iam": IAMScanner,
-    "cloudtrail": CloudTrailScanner,
-    "ec2": EC2Scanner,
-    "rds": RDSScanner,
-}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -30,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="blacklight",
         description="Project Blacklight cloud security scanner",
     )
-    parser.add_argument("--version", action="version", version="Project Blacklight 0.1.0a2")
+    parser.add_argument("--version", action="version", version="Project Blacklight 0.1.0a3")
 
     commands = parser.add_subparsers(dest="command", required=True)
     scan = commands.add_parser("scan", help="Run deterministic security checks")
@@ -39,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     aws = providers.add_parser("aws", help="Scan AWS resources")
     aws.add_argument(
         "--service",
-        choices=["all", *AWS_SCANNERS.keys()],
+        choices=["all", *scanner_names("aws")],
         default="all",
         help="AWS service to scan (default: all)",
     )
@@ -59,10 +45,9 @@ def build_parser() -> argparse.ArgumentParser:
 def _run_aws(args: argparse.Namespace) -> int:
     try:
         session = boto3.Session(profile_name=args.profile, region_name=args.region)
-        scanner_names = list(AWS_SCANNERS) if args.service == "all" else [args.service]
         findings = []
-        for name in scanner_names:
-            findings.extend(AWS_SCANNERS[name](session).scan())
+        for spec in scanner_specs("aws", args.service):
+            findings.extend(spec.scanner_cls(session).scan())
     except (NoCredentialsError, ProfileNotFound) as error:
         print(f"Blacklight could not load AWS credentials: {error}", file=sys.stderr)
         return 2

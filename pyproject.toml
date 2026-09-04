@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-blacklight-security"
-version = "0.1.0a2"
+version = "0.1.0a3"
 description = "Open-source cloud security scanning and risk visibility toolkit."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,8 +36,8 @@ dev = [
 blacklight = "blacklight_security.cli:main"
 
 [project.urls]
-Repository = "https://github.com/OloaneShark/cloudguard"
-Issues = "https://github.com/OloaneShark/cloudguard/issues"
+Repository = "https://github.com/OloaneShark/Project_Blacklight"
+Issues = "https://github.com/OloaneShark/Project_Blacklight/issues"
 
 [tool.setuptools.packages.find]
 include = ["blacklight_security*"]
