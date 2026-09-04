@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-blacklight-security"
+version = "0.1.0a1"
+description = "Open-source cloud security scanning and risk visibility toolkit."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Dennis Oloane" }
+]
+keywords = ["cybersecurity", "aws", "cloud-security", "security-scanner", "devsecops"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+dependencies = [
+  "boto3>=1.34,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<9",
+  "ruff>=0.8,<1",
+]
+
+[project.scripts]
+blacklight = "blacklight_security.cli:main"
+
+[project.urls]
+Repository = "https://github.com/OloaneShark/cloudguard"
+Issues = "https://github.com/OloaneShark/cloudguard/issues"
+
+[tool.setuptools.packages.find]
+include = ["blacklight_security*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
