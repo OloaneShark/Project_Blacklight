@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BlacklightReadOnlyDiscovery",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:DescribeTrails",
+        "cloudtrail:GetTrailStatus",
+        "ec2:DescribeSecurityGroups",
+        "iam:GetAccessKeyLastUsed",
+        "iam:GetAccountSummary",
+        "iam:ListAccessKeys",
+        "iam:ListUsers",
+        "rds:DescribeDBInstances",
+        "s3:GetBucketLogging",
+        "s3:GetBucketPolicyStatus",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketVersioning",
+        "s3:GetEncryptionConfiguration",
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

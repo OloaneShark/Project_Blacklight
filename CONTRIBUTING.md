@@ -14,8 +14,8 @@ Project Blacklight is intended to be a community-usable security tool, not a pri
 ## Development setup
 
 ```bash
-git clone https://github.com/OloaneShark/cloudguard.git
-cd cloudguard
+git clone https://github.com/OloaneShark/Project_Blacklight.git
+cd Project_Blacklight
 python -m venv .venv
 ```
 
@@ -36,6 +36,7 @@ A scanner should:
 4. Avoid modifying the target environment.
 5. Treat access/permission failures as `ERROR`, not as proof that a resource is insecure.
 6. Include remediation guidance when a finding is actionable.
+7. Document any new AWS API permissions required by the scanner and update `examples/aws/blacklight-readonly-policy.json` in the same pull request.
 
 AI-assisted analysis may be added later, but AI output must not replace deterministic security detection.
 

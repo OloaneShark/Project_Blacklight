@@ -10,7 +10,7 @@ Blacklight reveals security weaknesses that are easy to miss in normal cloud con
 
 Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, and Amazon RDS. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
-Blacklight now also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score.
+Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score.
 
 ## Install from source
 
@@ -22,7 +22,7 @@ cd Project_Blacklight
 python -m venv .venv
 ```
 
-Activate the virtual environment, then:
+Activate the virtual environment, then install Blacklight:
 
 ```bash
 python -m pip install -e .
@@ -34,13 +34,28 @@ For development:
 python -m pip install -e ".[dev]"
 ```
 
-## AWS credentials
+## AWS credentials and least privilege
 
-Blacklight uses the standard boto3/AWS credential chain. Do not hard-code credentials into the project. Prefer a least-privilege/read-only scanning identity.
+Blacklight uses the standard boto3/AWS credential chain. Do not hard-code credentials into the project.
+
+For normal use, prefer a dedicated read-only/least-privilege scanning identity. Project Blacklight includes an example policy at:
+
+```text
+examples/aws/blacklight-readonly-policy.json
+```
+
+The policy contains only the AWS API actions currently required by the built-in scanners. See [docs/aws-permissions.md](docs/aws-permissions.md) for the permission breakdown and setup notes.
+
+Configure a profile for the scanning identity:
 
 ```bash
-aws configure --profile my-security-audit
-blacklight scan aws --profile my-security-audit
+aws configure --profile blacklight-audit
+```
+
+Then run:
+
+```bash
+blacklight scan aws --profile blacklight-audit
 ```
 
 ## Usage
@@ -91,7 +106,6 @@ The scanner layer collects evidence and determines findings. The registry decoup
 
 Next priorities:
 
-- Read-only least-privilege IAM policy/documentation for Blacklight scans
 - Deeper AWS checks and additional AWS services
 - More deterministic correlation rules with test coverage
 - Contributor-facing scanner registration documentation
