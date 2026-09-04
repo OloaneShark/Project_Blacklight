@@ -1,160 +1,129 @@
-# CloudGuard
+# Project Blacklight
 
-CloudGuard is a Python-based AWS security dashboard that scans your AWS environment for common cloud misconfigurations and surfaces the findings through a Flask web app. It runs real AWS checks via `boto3`, stores scan history in PostgreSQL, and is deployed as a Dockerized app on EC2 behind Gunicorn, with GitHub Actions handling automated deployment.
+**Project Blacklight is an open-source cloud security scanning and risk-visibility toolkit.**
 
-## Table of Contents
+Blacklight is being built to reveal security weaknesses that are easy to miss in normal cloud configuration noise. The core scanner is deterministic: provider APIs and explicit security checks decide what is wrong. AI may be added later as an optional analyst layer for correlation, prioritization, explanation, and remediation assistance, but Blacklight does not require AI to detect security problems.
 
-- [Screenshots](#screenshots)
-- [Live Features](#live-features)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Deployment](#deployment)
-- [Environment Variables](#environment-variables)
-- [Purpose](#purpose)
-- [Future Enhancements](#future-enhancements)
+> Status: **early alpha / active migration from CloudGuard**
 
-## Screenshots
+## Why Blacklight
 
-### Dashboard Overview
-Main CloudGuard dashboard displaying scan metadata, severity summaries, risk metrics, and overall security posture across the AWS environment.
+The original CloudGuard project began as a Flask-based AWS security dashboard. It already performs real checks against S3, IAM, CloudTrail, EC2, and RDS. Project Blacklight is the next stage: turning that work into a reusable open-source security tool that other people can install, run, fork, extend, and contribute to.
 
-![Dashboard Overview](screenshots/Dashboard_Overview.png)
+The old Flask dashboard files are temporarily retained while working security checks are migrated into the new package architecture.
 
-### Risk Overview
-Security score visualization showing total findings, open risks, critical findings, and an overall security score.
+## Current alpha capabilities
 
-![Risk Overview](screenshots/Risk_overview.png)
+The first migrated scanner targets Amazon S3 and checks:
 
-### Scan History & Export
-Review previous scans and export findings as a PDF or CSV file.
+- S3 Block Public Access configuration
+- Default server-side encryption
+- Versioning
+- Server access logging
+- AWS-evaluated public bucket policy status
 
-![Scan History](screenshots/Scan_History_download.png)
+Every result is normalized into a structured finding with a stable check ID, severity, evidence, and remediation guidance.
 
-### Security Checks
-Detailed AWS account and S3 bucket security findings with severity classification and remediation recommendations.
+## Install from source
 
-![Security Checks](screenshots/Security_Checks.png)
+PyPI publishing is planned but is **not live yet**. For now, install from the repository:
 
-### Security Trend Over Time
-Historical trend visualization tracking PASS, WARNING, CRITICAL, and INFO findings across multiple scans to show how security posture changes over time.
-
-![Security Trend Over Time](screenshots/Severity_Trend_Over_Time.png)
-
-## Live Features
-
-**S3 Security Checks**
-- Public Access Block detection
-- Server-side encryption validation
-- S3 versioning checks
-- Bucket logging checks
-- Bucket policy exposure detection
-
-**AWS Account Security Checks**
-- CloudTrail enabled verification
-- CloudTrail logging status validation
-- Multi-region CloudTrail validation
-- Root account MFA verification
-- IAM access key age checks
-- IAM access key usage checks
-- EC2 security group auditing
-- RDS security checks
-
-**Dashboard Features**
-- Severity-based findings (PASS, WARNING, CRITICAL, INFO)
-- Security score calculation
-- Scan history stored in PostgreSQL
-- Color-coded findings
-- Severity summary counters
-- Security score trend visualization
-- Historical severity trend visualization
-- PDF report export
-- CSV report export
-
-**Automation Features**
-- Scheduled automated scans using APScheduler
-- Critical finding detection
-- Email alert framework
-- GitHub Actions CI/CD deployment pipeline
-
-## Tech Stack
-
-| Category | Tools |
-|---|---|
-| Language | Python |
-| Web Framework | Flask |
-| ORM | SQLAlchemy |
-| Database | PostgreSQL (Neon) |
-| Containerization | Docker |
-| App Server | Gunicorn |
-| Cloud | AWS EC2, S3, IAM, CloudTrail, RDS |
-| AWS SDK | boto3 |
-| Scheduling | APScheduler |
-| CI/CD | GitHub Actions |
-
-## Architecture
-
-**Request path:**
-
-```
-User → AWS EC2 → Docker Container → Gunicorn → Flask Application → PostgreSQL (Neon)
+```bash
+git clone https://github.com/OloaneShark/cloudguard.git
+cd cloudguard
+python -m venv .venv
 ```
 
-**Scanning path:**
+Activate the virtual environment, then:
 
-```
-Flask Application → boto3 → AWS APIs → S3, IAM, CloudTrail, EC2, RDS
-```
-
-## Deployment
-
-CloudGuard is deployed as a Docker container on AWS EC2 and served using Gunicorn.
-
-Continuous deployment runs through GitHub Actions. Every push to `main` automatically:
-
-1. Connects to the EC2 instance over SSH
-2. Pulls the latest source code
-3. Stops and removes the existing container
-4. Rebuilds the Docker image
-5. Starts the updated container
-
-## Environment Variables
-
-**Required**
-
-```
-DATABASE_URL=
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_DEFAULT_REGION=us-east-1
+```bash
+python -m pip install -e .
 ```
 
-**Optional (email alerts)**
+For development:
 
-```
-ALERT_EMAIL_FROM=
-ALERT_EMAIL_PASSWORD=
-ALERT_EMAIL_TO=
+```bash
+python -m pip install -e ".[dev]"
 ```
 
-> Secrets are never committed to this repository.
+## AWS credentials
 
-## Purpose
+Blacklight uses the normal `boto3`/AWS credential chain. It does not require credentials to be hard-coded into the project.
 
-I built CloudGuard as a hands-on cloud security project — both to build real experience and to have a substantial portfolio piece. It's meant to demonstrate:
+For example, configure an AWS CLI profile and then run Blacklight with that profile:
 
-- AWS security auditing
-- Flask application development
-- Dockerized deployments
-- PostgreSQL database integration
-- CI/CD automation
-- Cloud security monitoring
-- Automated reporting
-- Production troubleshooting and debugging
+```bash
+aws configure --profile my-security-audit
+blacklight scan aws --service s3 --profile my-security-audit
+```
 
-## Future Enhancements
+Use a least-privilege/read-only scanning identity whenever possible.
 
-- User authentication and RBAC
-- Additional AWS service checks
-- Real-time notifications
-- Multi-account AWS scanning
-- Compliance reporting (CIS/NIST)
+## Usage
+
+Console output:
+
+```bash
+blacklight scan aws --service s3
+```
+
+Use a specific AWS profile and region:
+
+```bash
+blacklight scan aws --service s3 --profile my-security-audit --region us-east-1
+```
+
+Generate structured JSON:
+
+```bash
+blacklight scan aws --service s3 --format json --output reports/s3-scan.json
+```
+
+## Architecture direction
+
+```text
+blacklight_security/
+├── cli.py
+├── models.py
+├── reporting.py
+└── scanners/
+    └── aws/
+        └── s3.py
+```
+
+The scanner layer collects evidence and determines findings. Reporting consumes normalized findings. Future correlation and AI-assisted analysis will sit **after** detection rather than replacing it.
+
+## Roadmap
+
+Next migration targets from the existing CloudGuard logic:
+
+- IAM access-key age and usage
+- Root account MFA visibility
+- CloudTrail configuration
+- EC2 security-group exposure
+- RDS public accessibility and encryption
+
+After the AWS foundation is stable:
+
+- Extensible scanner/check registration
+- Better risk scoring and deterministic finding correlation
+- Additional AWS services
+- HTML reports
+- PyPI publishing
+- Versioned GitHub releases
+- Standalone executables
+- Docker distribution
+- Docker and Kubernetes security scanners
+- Optional pluggable AI analyst integrations
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md) before reporting vulnerabilities or working with credentials.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
