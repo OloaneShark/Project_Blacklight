@@ -2,6 +2,16 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.3] - 2026-09-04
+
+### Added
+
+- Shared scanner registry used by the CLI instead of hard-coded scanner imports.
+- Deterministic risk scoring from normalized finding severities.
+- Explainable correlation rules for selected combinations of AWS findings.
+- Risk assessment included in console and JSON reports.
+- Unit tests for registry behavior and risk correlations.
+
 ## [0.1.0-alpha.2] - 2026-09-03
 
 ### Added
