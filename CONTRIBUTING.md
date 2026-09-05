@@ -24,7 +24,20 @@ Activate the virtual environment, then install the package in editable mode:
 ```bash
 python -m pip install -e ".[dev]"
 pytest -q
+ruff check blacklight_security tests
 ```
+
+## Simple contribution workflow
+
+1. Update `main`.
+2. Create a feature branch.
+3. Make the change.
+4. Run tests and Ruff.
+5. Commit and push the feature branch.
+6. Open a pull request into `main`.
+7. Merge only after review and CI pass.
+
+See [docs/git-workflow.md](docs/git-workflow.md) for the exact commands.
 
 ## Scanner rules
 
@@ -42,4 +55,4 @@ AI-assisted analysis may be added later, but AI output must not replace determin
 
 ## Pull requests
 
-Keep pull requests focused. Add or update tests for behavior changes, and explain any security assumptions that affect severity or false-positive risk.
+Keep pull requests focused. Add or update tests for behavior changes, and explain any security assumptions that affect severity or false-positive risk. GitHub will provide a pull-request checklist automatically.
