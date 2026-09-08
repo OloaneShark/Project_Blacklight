@@ -12,6 +12,8 @@
         "iam:GetAccountSummary",
         "iam:ListAccessKeys",
         "iam:ListUsers",
+        "lambda:GetFunctionUrlConfig",
+        "lambda:ListFunctions",
         "rds:DescribeDBInstances",
         "s3:GetBucketLogging",
         "s3:GetBucketPolicyStatus",
