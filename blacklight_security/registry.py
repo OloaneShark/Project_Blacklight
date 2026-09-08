@@ -35,6 +35,7 @@ def load_builtin_scanners() -> None:
         CloudTrailScanner,
         EC2Scanner,
         IAMScanner,
+        LambdaScanner,
         RDSScanner,
         S3Scanner,
     )
@@ -45,6 +46,7 @@ def load_builtin_scanners() -> None:
         "cloudtrail": CloudTrailScanner,
         "ec2": EC2Scanner,
         "rds": RDSScanner,
+        "lambda": LambdaScanner,
     }.items():
         register_scanner("aws", name, scanner_cls)
 
