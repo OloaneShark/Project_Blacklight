@@ -1,7 +1,13 @@
 from datetime import datetime, timedelta, timezone
 
 from blacklight_security.models import Severity
-from blacklight_security.scanners.aws import CloudTrailScanner, EC2Scanner, IAMScanner, RDSScanner
+from blacklight_security.scanners.aws import (
+    CloudTrailScanner,
+    EC2Scanner,
+    IAMScanner,
+    LambdaScanner,
+    RDSScanner,
+)
 
 
 class FakePaginator:
@@ -83,6 +89,19 @@ class FakeRDS:
         )
 
 
+class FakeLambda:
+    def get_paginator(self, name):
+        assert name == "list_functions"
+        return FakePaginator([{"Functions": [{"FunctionName": "public-api"}]}])
+
+    def get_function_url_config(self, FunctionName):
+        assert FunctionName == "public-api"
+        return {
+            "FunctionUrl": "https://example.lambda-url.us-east-1.on.aws/",
+            "AuthType": "NONE",
+        }
+
+
 def test_iam_scanner_flags_root_mfa_and_stale_key():
     findings = IAMScanner(FakeSession({"iam": FakeIAM()})).scan()
     severities = {finding.check_id: finding.severity for finding in findings}
@@ -114,3 +133,12 @@ def test_rds_scanner_flags_public_unencrypted_database():
 
     assert severities["aws.rds.public_access"] is Severity.CRITICAL
     assert severities["aws.rds.storage_encryption"] is Severity.HIGH
+
+
+def test_lambda_scanner_flags_unauthenticated_function_url():
+    findings = LambdaScanner(FakeSession({"lambda": FakeLambda()})).scan()
+
+    assert len(findings) == 1
+    assert findings[0].check_id == "aws.lambda.function_url_auth"
+    assert findings[0].severity is Severity.HIGH
+    assert findings[0].evidence["auth_type"] == "NONE"
