@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest a new scanner, check, report, or Project Blacklight capability
+title: "[Feature] "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the security or usability problem first.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Explain the scanner, check, workflow, or output you want to add.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - AWS scanner/check
+        - Risk/correlation engine
+        - Reporting
+        - CLI
+        - Documentation
+        - Testing/CI
+        - Packaging/distribution
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Detection evidence
+      description: If this is a security check, what provider/API evidence should Blacklight use to detect it deterministically?
+  - type: textarea
+    id: permissions
+    attributes:
+      label: New permissions
+      description: If this needs new AWS API actions, list them here if known.

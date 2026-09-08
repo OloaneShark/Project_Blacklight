@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible problem in Project Blacklight
+title: "[Bug] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Project Blacklight. Do not include AWS credentials, secrets, tokens, or sensitive customer data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How can we reproduce it?
+      description: Include the Blacklight command and minimal steps needed to reproduce the issue.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Blacklight version
+      placeholder: "Example: 0.1.0a3"
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "Example: 3.12"
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Example: Windows 11, Ubuntu 24.04"
+  - type: textarea
+    id: output
+    attributes:
+      label: Relevant output
+      description: Paste sanitized errors or logs. Remove account IDs, credentials, secrets, and sensitive resource names if needed.
+      render: shell
