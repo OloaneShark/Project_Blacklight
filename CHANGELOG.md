@@ -2,6 +2,16 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.4] - 2026-09-08
+
+### Added
+
+- AWS Lambda scanner.
+- Detection for Lambda Function URLs configured with unauthenticated `NONE` access.
+- Lambda scanner registration so `blacklight scan aws --service lambda` is supported.
+- Unit coverage for unauthenticated Lambda Function URL exposure.
+- Least-privilege Lambda read permissions and documentation.
+
 ## [0.1.0-alpha.3] - 2026-09-04
 
 ### Added
