@@ -10,7 +10,7 @@ Create a dedicated IAM user or role for Blacklight and attach the example policy
 examples/aws/blacklight-readonly-policy.json
 ```
 
-The policy grants only the API actions currently required by Blacklight's S3, IAM, CloudTrail, EC2, RDS, and Lambda scanners.
+The policy grants only the API actions currently required by Blacklight's S3, IAM, CloudTrail, EC2, RDS, Lambda, and GuardDuty scanners.
 
 ## Current required actions
 
@@ -47,6 +47,11 @@ The policy grants only the API actions currently required by Blacklight's S3, IA
 
 - `lambda:ListFunctions`
 - `lambda:GetFunctionUrlConfig`
+
+### Amazon GuardDuty
+
+- `guardduty:ListDetectors`
+- `guardduty:GetDetector`
 
 ## Why `Resource: "*"` appears in the policy
 

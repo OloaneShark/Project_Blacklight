@@ -8,6 +8,8 @@
         "cloudtrail:DescribeTrails",
         "cloudtrail:GetTrailStatus",
         "ec2:DescribeSecurityGroups",
+        "guardduty:GetDetector",
+        "guardduty:ListDetectors",
         "iam:GetAccessKeyLastUsed",
         "iam:GetAccountSummary",
         "iam:ListAccessKeys",

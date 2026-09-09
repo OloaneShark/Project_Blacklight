@@ -2,6 +2,16 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.5] - 2026-09-08
+
+### Added
+
+- Amazon GuardDuty scanner for regional detector status.
+- HIGH finding when no GuardDuty detector is configured or a detector is disabled.
+- `blacklight scan aws --service guardduty` support.
+- Unit coverage for enabled and missing GuardDuty detectors.
+- Least-privilege GuardDuty read permissions and documentation.
+
 ## [0.1.0-alpha.4] - 2026-09-08
 
 ### Added
