@@ -2,7 +2,15 @@ from blacklight_security.registry import scanner_names, scanner_specs
 
 
 def test_builtin_aws_scanners_are_registered():
-    assert scanner_names("aws") == ["cloudtrail", "ec2", "iam", "lambda", "rds", "s3"]
+    assert scanner_names("aws") == [
+        "cloudtrail",
+        "ec2",
+        "guardduty",
+        "iam",
+        "lambda",
+        "rds",
+        "s3",
+    ]
 
 
 def test_registry_selects_one_scanner():

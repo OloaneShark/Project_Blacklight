@@ -8,9 +8,9 @@ Blacklight reveals security weaknesses that are easy to miss in normal cloud con
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, and AWS Lambda. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, and Amazon GuardDuty. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
-The Lambda scanner currently checks whether Lambda Function URLs allow unauthenticated public access.
+The Lambda scanner checks whether Lambda Function URLs allow unauthenticated public access. The GuardDuty scanner checks whether managed threat detection is enabled in the selected AWS region.
 
 Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score.
 
@@ -77,6 +77,7 @@ blacklight scan aws --service cloudtrail
 blacklight scan aws --service ec2
 blacklight scan aws --service rds
 blacklight scan aws --service lambda
+blacklight scan aws --service guardduty
 ```
 
 Generate JSON:
@@ -101,7 +102,8 @@ blacklight_security/
         ├── cloudtrail.py
         ├── ec2.py
         ├── rds.py
-        └── lambda_functions.py
+        ├── lambda_functions.py
+        └── guardduty.py
 ```
 
 The scanner layer collects evidence and determines findings. The registry decouples scanner selection from the CLI. The risk engine consumes normalized findings after detection. Future AI-assisted analysis will sit after these deterministic layers rather than replacing them.

@@ -34,6 +34,7 @@ def load_builtin_scanners() -> None:
     from blacklight_security.scanners.aws import (
         CloudTrailScanner,
         EC2Scanner,
+        GuardDutyScanner,
         IAMScanner,
         LambdaScanner,
         RDSScanner,
@@ -47,6 +48,7 @@ def load_builtin_scanners() -> None:
         "ec2": EC2Scanner,
         "rds": RDSScanner,
         "lambda": LambdaScanner,
+        "guardduty": GuardDutyScanner,
     }.items():
         register_scanner("aws", name, scanner_cls)
 
