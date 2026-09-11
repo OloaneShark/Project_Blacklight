@@ -4,7 +4,7 @@
 
 Blacklight reveals security weaknesses that are easy to miss in normal cloud configuration noise. Detection is deterministic: provider APIs and explicit security checks decide what is wrong. AI may be added later as an optional analyst layer for correlation, prioritization, explanation, and remediation assistance, but Blacklight does not require AI to detect security problems.
 
-> Status: **early alpha / active migration from CloudGuard**
+> Status: **early alpha / active development**
 
 ## Current capabilities
 
@@ -86,6 +86,8 @@ Generate JSON:
 blacklight scan aws --format json --output reports/aws-scan.json
 ```
 
+Console and JSON reports now include scan execution metadata such as provider, selected region, scanners executed, scan status, and duration.
+
 ## Architecture
 
 ```text
@@ -93,6 +95,7 @@ blacklight_security/
 ├── cli.py
 ├── models.py
 ├── registry.py
+├── runner.py
 ├── reporting.py
 ├── risk.py
 └── scanners/
@@ -106,7 +109,9 @@ blacklight_security/
         └── guardduty.py
 ```
 
-The scanner layer collects evidence and determines findings. The registry decouples scanner selection from the CLI. The risk engine consumes normalized findings after detection. Future AI-assisted analysis will sit after these deterministic layers rather than replacing them.
+The CLI parses commands and hands execution to the scan runner. The runner coordinates registered scanners and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes those findings after detection, and the reporting layer renders the final console or JSON output.
+
+The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_flask/` for history and reference. It is not the current Blacklight entry point.
 
 ## Roadmap
 
