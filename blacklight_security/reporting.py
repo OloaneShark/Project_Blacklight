@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from typing import TYPE_CHECKING
 
 from blacklight_security.models import Finding, Severity
 from blacklight_security.risk import assess_risk
+
+if TYPE_CHECKING:
+    from blacklight_security.runner import ScanResult
 
 
 DISPLAY_ORDER = [
@@ -18,10 +22,28 @@ DISPLAY_ORDER = [
 ]
 
 
-def render_console(findings: list[Finding]) -> str:
+def _findings(value: list[Finding] | ScanResult) -> list[Finding]:
+    return value.findings if hasattr(value, "findings") else value
+
+
+def render_console(value: list[Finding] | ScanResult) -> str:
+    findings = _findings(value)
     counts = Counter(finding.severity for finding in findings)
     assessment = assess_risk(findings)
     lines = ["Project Blacklight", "==================", ""]
+
+    if hasattr(value, "metadata_dict"):
+        metadata = value.metadata_dict()
+        lines.extend(
+            [
+                f"Status: {metadata['status']}",
+                f"Provider: {metadata['provider']}",
+                f"Region: {metadata['region'] or 'default/unspecified'}",
+                f"Scanners: {', '.join(metadata['scanners']) or 'none'}",
+                f"Duration: {metadata['duration_ms']} ms",
+                "",
+            ]
+        )
 
     if not findings:
         lines.append("No resources were returned by the selected scanner.")
@@ -70,11 +92,14 @@ def render_console(findings: list[Finding]) -> str:
     return "\n".join(lines).rstrip()
 
 
-def render_json(findings: list[Finding]) -> str:
+def render_json(value: list[Finding] | ScanResult) -> str:
+    findings = _findings(value)
     payload = {
         "tool": "project-blacklight",
-        "schema_version": "1",
+        "schema_version": "2" if hasattr(value, "metadata_dict") else "1",
         "risk": assess_risk(findings).to_dict(),
         "findings": [finding.to_dict() for finding in findings],
     }
+    if hasattr(value, "metadata_dict"):
+        payload["scan"] = value.metadata_dict()
     return json.dumps(payload, indent=2)
