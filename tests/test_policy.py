@@ -1,5 +1,8 @@
+import json
+
 from blacklight_security.models import Finding, Severity
 from blacklight_security.policy import evaluate_policy
+from blacklight_security.reporting import render_json
 
 
 def _finding(severity: Severity, name: str) -> Finding:
@@ -63,3 +66,15 @@ def test_gate_is_disabled_when_no_threshold_is_requested():
     assert policy.fail_on is None
     assert policy.triggered_count == 0
     assert policy.highest_severity == "CRITICAL"
+
+
+def test_json_report_includes_policy_result():
+    findings = [_finding(Severity.HIGH, "high")]
+    policy = evaluate_policy(findings, "high")
+
+    payload = json.loads(render_json(findings, policy))
+
+    assert payload["schema_version"] == "3"
+    assert payload["policy"]["passed"] is False
+    assert payload["policy"]["fail_on"] == "HIGH"
+    assert payload["policy"]["triggered_count"] == 1
