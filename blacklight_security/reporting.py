@@ -112,9 +112,16 @@ def render_json(
     policy: PolicyResult | None = None,
 ) -> str:
     findings = _findings(value)
+    if policy is not None:
+        schema_version = "3"
+    elif hasattr(value, "metadata_dict"):
+        schema_version = "2"
+    else:
+        schema_version = "1"
+
     payload = {
         "tool": "project-blacklight",
-        "schema_version": "2" if hasattr(value, "metadata_dict") else "1",
+        "schema_version": schema_version,
         "risk": assess_risk(findings).to_dict(),
         "findings": [finding.to_dict() for finding in findings],
     }
