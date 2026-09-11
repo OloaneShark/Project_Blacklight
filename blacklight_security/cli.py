@@ -7,8 +7,10 @@ from pathlib import Path
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, ProfileNotFound
 
-from blacklight_security.registry import scanner_names, scanner_specs
+from blacklight_security import __version__
+from blacklight_security.registry import scanner_names
 from blacklight_security.reporting import render_console, render_json
+from blacklight_security.runner import ScanRunner
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,7 +18,11 @@ def build_parser() -> argparse.ArgumentParser:
         prog="blacklight",
         description="Project Blacklight cloud security scanner",
     )
-    parser.add_argument("--version", action="version", version="Project Blacklight 0.1.0a3")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"Project Blacklight {__version__}",
+    )
 
     commands = parser.add_subparsers(dest="command", required=True)
     scan = commands.add_parser("scan", help="Run deterministic security checks")
@@ -45,9 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _run_aws(args: argparse.Namespace) -> int:
     try:
         session = boto3.Session(profile_name=args.profile, region_name=args.region)
-        findings = []
-        for spec in scanner_specs("aws", args.service):
-            findings.extend(spec.scanner_cls(session).scan())
+        result = ScanRunner("aws", session).run(args.service)
     except (NoCredentialsError, ProfileNotFound) as error:
         print(f"Blacklight could not load AWS credentials: {error}", file=sys.stderr)
         return 2
@@ -55,7 +59,7 @@ def _run_aws(args: argparse.Namespace) -> int:
         print(f"Blacklight could not complete the AWS scan: {error}", file=sys.stderr)
         return 2
 
-    rendered = render_json(findings) if args.output_format == "json" else render_console(findings)
+    rendered = render_json(result) if args.output_format == "json" else render_console(result)
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
