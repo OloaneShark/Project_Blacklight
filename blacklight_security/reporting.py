@@ -8,6 +8,7 @@ from blacklight_security.models import Finding, Severity
 from blacklight_security.risk import assess_risk
 
 if TYPE_CHECKING:
+    from blacklight_security.policy import PolicyResult
     from blacklight_security.runner import ScanResult
 
 
@@ -26,7 +27,10 @@ def _findings(value: list[Finding] | ScanResult) -> list[Finding]:
     return value.findings if hasattr(value, "findings") else value
 
 
-def render_console(value: list[Finding] | ScanResult) -> str:
+def render_console(
+    value: list[Finding] | ScanResult,
+    policy: PolicyResult | None = None,
+) -> str:
     findings = _findings(value)
     counts = Counter(finding.severity for finding in findings)
     assessment = assess_risk(findings)
@@ -47,16 +51,27 @@ def render_console(value: list[Finding] | ScanResult) -> str:
 
     if not findings:
         lines.append("No resources were returned by the selected scanner.")
+        if policy and policy.enabled:
+            lines.extend(["", f"Security gate: PASS (fail on {policy.fail_on} or above)"])
         return "\n".join(lines)
 
     lines.extend(
         [
             f"Risk: {assessment.level} ({assessment.score}/100)",
             f"Base finding score: {assessment.base_score}/100",
-            "",
-            "Scan summary",
         ]
     )
+
+    if policy and policy.enabled:
+        gate_status = "PASS" if policy.passed else "FAIL"
+        lines.extend(
+            [
+                f"Security gate: {gate_status} (fail on {policy.fail_on} or above)",
+                f"Gate matches: {policy.triggered_count}",
+            ]
+        )
+
+    lines.extend(["", "Scan summary"])
     for severity in DISPLAY_ORDER:
         if counts[severity]:
             lines.append(f"  {severity.value:<8} {counts[severity]}")
@@ -92,14 +107,26 @@ def render_console(value: list[Finding] | ScanResult) -> str:
     return "\n".join(lines).rstrip()
 
 
-def render_json(value: list[Finding] | ScanResult) -> str:
+def render_json(
+    value: list[Finding] | ScanResult,
+    policy: PolicyResult | None = None,
+) -> str:
     findings = _findings(value)
+    if policy is not None:
+        schema_version = "3"
+    elif hasattr(value, "metadata_dict"):
+        schema_version = "2"
+    else:
+        schema_version = "1"
+
     payload = {
         "tool": "project-blacklight",
-        "schema_version": "2" if hasattr(value, "metadata_dict") else "1",
+        "schema_version": schema_version,
         "risk": assess_risk(findings).to_dict(),
         "findings": [finding.to_dict() for finding in findings],
     }
     if hasattr(value, "metadata_dict"):
         payload["scan"] = value.metadata_dict()
+    if policy is not None:
+        payload["policy"] = policy.to_dict()
     return json.dumps(payload, indent=2)
