@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, ProfileNotFound
 
 from blacklight_security import __version__
+from blacklight_security.policy import evaluate_policy
 from blacklight_security.registry import scanner_names
 from blacklight_security.reporting import render_console, render_json
 from blacklight_security.runner import ScanRunner
@@ -44,6 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
         dest="output_format",
     )
     aws.add_argument("--output", type=Path, help="Write the rendered report to a file")
+    aws.add_argument(
+        "--fail-on",
+        choices=["low", "medium", "high", "critical"],
+        help="Exit with code 1 when a finding at or above this severity is detected",
+    )
 
     return parser
 
@@ -59,7 +65,12 @@ def _run_aws(args: argparse.Namespace) -> int:
         print(f"Blacklight could not complete the AWS scan: {error}", file=sys.stderr)
         return 2
 
-    rendered = render_json(result) if args.output_format == "json" else render_console(result)
+    policy = evaluate_policy(result.findings, args.fail_on)
+    rendered = (
+        render_json(result, policy)
+        if args.output_format == "json"
+        else render_console(result, policy)
+    )
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -67,6 +78,14 @@ def _run_aws(args: argparse.Namespace) -> int:
         print(f"Report written to {args.output}")
     else:
         print(rendered)
+
+    if policy.enabled and not policy.passed:
+        print(
+            f"Blacklight security gate failed: {policy.triggered_count} finding(s) "
+            f"at {policy.fail_on} severity or above.",
+            file=sys.stderr,
+        )
+        return 1
 
     return 0
 
