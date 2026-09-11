@@ -2,6 +2,20 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.6] - 2026-09-10
+
+### Added
+
+- Unified scan runner that coordinates registered scanners and returns one normalized scan result.
+- Scan metadata for provider, region, scanners executed, status, finding count, timestamps, and duration.
+- Console and JSON reporting support for scan execution metadata.
+- Unit coverage for complete and partial scan-runner states.
+
+### Changed
+
+- `blacklight --version` now reads from the same version source used by packaging.
+- The original CloudGuard Flask application was moved under `legacy/cloudguard_flask/` so the repository root reflects the current CLI architecture.
+
 ## [0.1.0-alpha.5] - 2026-09-08
 
 ### Added
@@ -56,7 +70,3 @@ All notable changes to Project Blacklight will be documented here.
 - Initial unit test coverage.
 - GitHub Actions test workflow for Python 3.11 and 3.12.
 - MIT license, contribution guidance, and security policy.
-
-### Migration note
-
-The original CloudGuard Flask dashboard files remain in the repository during the migration. The CLI package is the new core direction.
