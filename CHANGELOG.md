@@ -2,6 +2,20 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.7] - 2026-09-11
+
+### Added
+
+- Deterministic CI/CD security gate with `--fail-on low|medium|high|critical`.
+- Exit code `1` when a requested security severity threshold is reached or exceeded.
+- Policy results in console and JSON reports, including threshold, pass/fail status, trigger count, and highest security severity.
+- JSON schema version 3 for policy-aware scan output.
+- Unit coverage for severity-threshold evaluation and CLI exit-code behavior.
+
+### Changed
+
+- The normal scan path still exits successfully when no `--fail-on` threshold is requested, preserving report-only usage.
+
 ## [0.1.0-alpha.6] - 2026-09-10
 
 ### Added
@@ -50,8 +64,8 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
-- Deterministic IAM scanner for root MFA and access-key age/usage visibility.
-- CloudTrail scanner for logging and multi-region visibility.
+- Deterministic IAM scanner for root MFA and active access-key age/usage visibility.
+- CloudTrail scanner for logging state and multi-region configuration.
 - EC2 security-group scanner for unrestricted sensitive-port exposure.
 - RDS scanner for public accessibility and storage encryption.
 - `blacklight scan aws` now runs all supported AWS scanners by default.
@@ -64,9 +78,12 @@ All notable changes to Project Blacklight will be documented here.
 
 - Project Blacklight package foundation.
 - Installable `blacklight` command-line entry point.
-- Normalized finding model and severity levels.
-- Deterministic AWS S3 checks for public access blocking, default encryption, versioning, access logging, and public bucket policy status.
-- Console and JSON report output.
-- Initial unit test coverage.
-- GitHub Actions test workflow for Python 3.11 and 3.12.
-- MIT license, contribution guidance, and security policy.
+- Normalized finding model and stable security check IDs.
+- first migrated deterministic AWS S3 scanner.
+- console and JSON reporting.
+- unit test coverage for the S3 scanner.
+- GitHub Actions CI for Python 3.11 and 3.12.
+- MIT `LICENSE`.
+- `CONTRIBUTING.md`.
+- `SECURITY.md`.
+- `CHANGELOG.md`.
