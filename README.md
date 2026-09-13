@@ -86,7 +86,15 @@ Generate JSON:
 blacklight scan aws --format json --output reports/aws-scan.json
 ```
 
-Console and JSON reports include scan execution metadata such as provider, selected region, scanners executed, scan status, and duration.
+Generate a self-contained HTML report:
+
+```bash
+blacklight scan aws --format html --output reports/blacklight-report.html
+```
+
+HTML reports contain scan context, risk score, severity counts, deterministic correlations, CI/CD gate results when enabled, findings, remediation guidance, and escaped evidence. They use inline styling only, so the generated file can be opened locally without a web server or external assets.
+
+Console, JSON, and HTML reports include scan execution metadata such as provider, selected region, scanners executed, scan status, and duration.
 
 ## CI/CD security gate
 
@@ -113,11 +121,20 @@ Example GitHub Actions step:
 
 JSON output includes a deterministic `policy` object describing the selected threshold, whether the gate passed, how many findings triggered it, and the highest detected security severity.
 
+The gate can also be combined with an HTML artifact:
+
+```bash
+blacklight scan aws --fail-on high --format html --output reports/blacklight-report.html
+```
+
+Blacklight writes the report before returning the gate exit code, so failed pipeline runs can still retain the report as an artifact.
+
 ## Architecture
 
 ```text
 blacklight_security/
 ├── cli.py
+├── html_reporting.py
 ├── models.py
 ├── policy.py
 ├── registry.py
@@ -135,7 +152,7 @@ blacklight_security/
         └── guardduty.py
 ```
 
-The CLI parses commands and hands execution to the scan runner. The runner coordinates registered scanners and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes those findings after detection. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layer renders the final console or JSON output.
+The CLI parses commands and hands execution to the scan runner. The runner coordinates registered scanners and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes those findings after detection. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
 
 The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_flask/` for history and reference. It is not the current Blacklight entry point.
 
@@ -143,7 +160,6 @@ The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_fl
 
 Next priorities:
 
-- HTML reports
 - Deeper AWS checks and additional AWS services
 - More deterministic correlation rules with test coverage
 - Contributor-facing scanner registration documentation
