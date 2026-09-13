@@ -2,6 +2,20 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.9] - 2026-09-13
+
+### Added
+
+- Best-effort AWS environment identity context collected with STS before scanner execution.
+- Scan metadata for AWS account ID, principal ARN, caller user ID, partition, selected profile, and resolved region.
+- Environment identity context in console, JSON, and HTML reports.
+- JSON scan schema version 4 with nested `scan.context` metadata.
+- Unit coverage for resolved and unavailable identity context, reporting output, and AWS partition detection.
+
+### Changed
+
+- Identity lookup failures are recorded as unavailable context instead of preventing the security scanners from running.
+
 ## [0.1.0-alpha.8] - 2026-09-12
 
 ### Added
@@ -80,8 +94,8 @@ All notable changes to Project Blacklight will be documented here.
 ### Added
 
 - Deterministic IAM scanner for root MFA and active access-key age/usage visibility.
-- CloudTrail scanner for logging state and multi-region configuration.
-- EC2 security-group scanner for unrestricted all-port ingress and sensitive public ports.
+- CloudTrail scanner for logging state and multi-region visibility.
+- EC2 security-group scanner for unrestricted sensitive-port exposure.
 - RDS scanner for public accessibility and storage encryption.
 - `blacklight scan aws` now runs all supported AWS scanners by default.
 - Per-service selection with `--service s3|iam|cloudtrail|ec2|rds`.
