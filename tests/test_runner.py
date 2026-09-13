@@ -3,10 +3,24 @@ from unittest.mock import patch
 from blacklight_security.models import Finding, Severity
 from blacklight_security.registry import ScannerSpec
 from blacklight_security.runner import ScanRunner
+from blacklight_security.scan_context import ScanContext
 
 
 class FakeSession:
     region_name = "us-east-1"
+    profile_name = "blacklight-audit"
+
+
+CONTEXT = ScanContext(
+    provider="aws",
+    region="us-east-1",
+    profile="blacklight-audit",
+    identity_status="RESOLVED",
+    account_id="123456789012",
+    principal_arn="arn:aws:sts::123456789012:assumed-role/BlacklightAudit/session",
+    user_id="AROATEST:session",
+    partition="aws",
+)
 
 
 class HealthyScanner:
@@ -47,23 +61,33 @@ class ErrorScanner:
         ]
 
 
-def test_runner_collects_metadata_and_findings():
+def test_runner_collects_context_metadata_and_findings():
     specs = [ScannerSpec("aws", "healthy", HealthyScanner)]
 
-    with patch("blacklight_security.runner.scanner_specs", return_value=specs):
+    with (
+        patch("blacklight_security.runner.scanner_specs", return_value=specs),
+        patch("blacklight_security.runner.resolve_scan_context", return_value=CONTEXT),
+    ):
         result = ScanRunner("aws", FakeSession()).run("all")
 
+    metadata = result.metadata_dict()
     assert result.status == "COMPLETE"
     assert result.region == "us-east-1"
     assert result.scanners == ["healthy"]
     assert len(result.findings) == 1
-    assert result.metadata_dict()["scanner_count"] == 1
+    assert metadata["scanner_count"] == 1
+    assert metadata["context"]["profile"] == "blacklight-audit"
+    assert metadata["context"]["identity"]["account_id"] == "123456789012"
+    assert metadata["context"]["identity"]["partition"] == "aws"
 
 
 def test_runner_marks_scan_partial_when_scanner_returns_error():
     specs = [ScannerSpec("aws", "broken", ErrorScanner)]
 
-    with patch("blacklight_security.runner.scanner_specs", return_value=specs):
+    with (
+        patch("blacklight_security.runner.scanner_specs", return_value=specs),
+        patch("blacklight_security.runner.resolve_scan_context", return_value=CONTEXT),
+    ):
         result = ScanRunner("aws", FakeSession()).run("all")
 
     assert result.status == "PARTIAL"

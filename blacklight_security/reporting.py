@@ -38,16 +38,25 @@ def render_console(
 
     if hasattr(value, "metadata_dict"):
         metadata = value.metadata_dict()
+        context = metadata.get("context", {})
+        identity = context.get("identity", {}) if isinstance(context, dict) else {}
         lines.extend(
             [
                 f"Status: {metadata['status']}",
                 f"Provider: {metadata['provider']}",
                 f"Region: {metadata['region'] or 'default/unspecified'}",
+                f"Profile: {context.get('profile') or 'default/credential chain'}",
+                f"Account: {identity.get('account_id') or 'unavailable'}",
+                f"Partition: {identity.get('partition') or 'unavailable'}",
+                f"Principal: {identity.get('principal_arn') or 'unavailable'}",
+                f"Identity: {identity.get('status') or 'UNAVAILABLE'}",
                 f"Scanners: {', '.join(metadata['scanners']) or 'none'}",
                 f"Duration: {metadata['duration_ms']} ms",
-                "",
             ]
         )
+        if identity.get("error"):
+            lines.append(f"Identity error: {identity['error']}")
+        lines.append("")
 
     if not findings:
         lines.append("No resources were returned by the selected scanner.")
@@ -112,10 +121,10 @@ def render_json(
     policy: PolicyResult | None = None,
 ) -> str:
     findings = _findings(value)
-    if policy is not None:
+    if hasattr(value, "metadata_dict"):
+        schema_version = "4"
+    elif policy is not None:
         schema_version = "3"
-    elif hasattr(value, "metadata_dict"):
-        schema_version = "2"
     else:
         schema_version = "1"
 

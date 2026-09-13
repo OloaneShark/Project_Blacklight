@@ -82,6 +82,7 @@ def render_html(
             "status": "COMPLETE",
             "provider": findings[0].provider if findings else "unknown",
             "region": None,
+            "context": {},
             "scanners": sorted({finding.service for finding in findings}),
             "scanner_count": len({finding.service for finding in findings}),
             "finding_count": len(findings),
@@ -89,6 +90,13 @@ def render_html(
             "completed_at": None,
             "duration_ms": None,
         }
+
+    context = metadata.get("context", {})
+    if not isinstance(context, dict):
+        context = {}
+    identity = context.get("identity", {})
+    if not isinstance(identity, dict):
+        identity = {}
 
     summary_cards = "".join(
         f"""
@@ -147,6 +155,17 @@ def render_html(
     completed_at = metadata.get("completed_at") or "unknown"
     duration = metadata.get("duration_ms")
     duration_text = f"{duration} ms" if duration is not None else "unknown"
+    profile = context.get("profile") or "default/credential chain"
+    account_id = identity.get("account_id") or "unavailable"
+    principal_arn = identity.get("principal_arn") or "unavailable"
+    partition = identity.get("partition") or "unavailable"
+    identity_status = identity.get("status") or "UNAVAILABLE"
+    identity_error = identity.get("error")
+    identity_error_cell = (
+        f'<div><span>Identity Error</span>{_text(identity_error)}</div>'
+        if identity_error
+        else ""
+    )
 
     return f"""<!doctype html>
 <html lang="en">
@@ -186,7 +205,7 @@ def render_html(
     .panel {{ margin-top: 18px; border: 1px solid var(--border); background: var(--panel); }}
     .section-title {{ padding: 14px 16px; border-bottom: 1px solid var(--border); }}
     .metadata {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; }}
-    .metadata div {{ padding: 14px 16px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }}
+    .metadata div {{ padding: 14px 16px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }}
     .metadata span, .metric span, dt, .finding-meta {{ display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }}
     .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; padding: 12px; }}
     .metric {{ border: 1px solid var(--border); padding: 12px; background: var(--panel-2); }}
@@ -242,6 +261,12 @@ def render_html(
       <div><span>Status</span>{_text(metadata.get('status', 'unknown'))}</div>
       <div><span>Provider</span>{_text(metadata.get('provider', 'unknown'))}</div>
       <div><span>Region</span>{_text(metadata.get('region') or 'default/unspecified')}</div>
+      <div><span>Profile</span>{_text(profile)}</div>
+      <div><span>AWS Account</span>{_text(account_id)}</div>
+      <div><span>Partition</span>{_text(partition)}</div>
+      <div><span>Principal</span>{_text(principal_arn)}</div>
+      <div><span>Identity Status</span>{_text(identity_status)}</div>
+      {identity_error_cell}
       <div><span>Scanners</span>{_text(scanners)}</div>
       <div><span>Findings</span>{_text(metadata.get('finding_count', len(findings)))}</div>
       <div><span>Duration</span>{_text(duration_text)}</div>
