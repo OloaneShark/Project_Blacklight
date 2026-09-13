@@ -2,6 +2,21 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.8] - 2026-09-12
+
+### Added
+
+- Self-contained HTML security reports with `--format html --output <path>`.
+- Scan context, risk score, severity summary, deterministic correlations, findings, remediation, evidence, and optional CI/CD gate status in HTML output.
+- HTML escaping for finding, resource, remediation, and evidence values before rendering.
+- Print-friendly standalone styling with no external assets or web server requirement.
+- Unit coverage for HTML content, escaping, and CLI file-output behavior.
+
+### Changed
+
+- CLI output formats now include `console`, `json`, and `html`.
+- HTML output requires an explicit `--output` path so report markup is not dumped into the terminal accidentally.
+
 ## [0.1.0-alpha.7] - 2026-09-11
 
 ### Added
@@ -66,7 +81,7 @@ All notable changes to Project Blacklight will be documented here.
 
 - Deterministic IAM scanner for root MFA and active access-key age/usage visibility.
 - CloudTrail scanner for logging state and multi-region configuration.
-- EC2 security-group scanner for unrestricted sensitive-port exposure.
+- EC2 security-group scanner for unrestricted all-port ingress and sensitive public ports.
 - RDS scanner for public accessibility and storage encryption.
 - `blacklight scan aws` now runs all supported AWS scanners by default.
 - Per-service selection with `--service s3|iam|cloudtrail|ec2|rds`.

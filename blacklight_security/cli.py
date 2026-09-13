@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, ProfileNotFound
 
 from blacklight_security import __version__
+from blacklight_security.html_reporting import render_html
 from blacklight_security.policy import evaluate_policy
 from blacklight_security.registry import scanner_names
 from blacklight_security.reporting import render_console, render_json
@@ -40,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     aws.add_argument("--region", help="AWS region override")
     aws.add_argument(
         "--format",
-        choices=["console", "json"],
+        choices=["console", "json", "html"],
         default="console",
         dest="output_format",
     )
@@ -55,6 +56,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _run_aws(args: argparse.Namespace) -> int:
+    if args.output_format == "html" and not args.output:
+        print(
+            "Blacklight HTML reports require --output, for example: "
+            "--format html --output reports/blacklight-report.html",
+            file=sys.stderr,
+        )
+        return 2
+
     try:
         session = boto3.Session(profile_name=args.profile, region_name=args.region)
         result = ScanRunner("aws", session).run(args.service)
@@ -66,11 +75,12 @@ def _run_aws(args: argparse.Namespace) -> int:
         return 2
 
     policy = evaluate_policy(result.findings, args.fail_on)
-    rendered = (
-        render_json(result, policy)
-        if args.output_format == "json"
-        else render_console(result, policy)
-    )
+    if args.output_format == "json":
+        rendered = render_json(result, policy)
+    elif args.output_format == "html":
+        rendered = render_html(result, policy)
+    else:
+        rendered = render_console(result, policy)
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
