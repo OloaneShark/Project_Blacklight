@@ -12,7 +12,7 @@ Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, 
 
 The Lambda scanner checks whether Lambda Function URLs allow unauthenticated public access. The GuardDuty scanner checks whether managed threat detection is enabled in the selected AWS region.
 
-Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score.
+Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score. See [docs/risk-engine.md](docs/risk-engine.md) for the scoring model and current correlation rules.
 
 ## Install from source
 
@@ -94,7 +94,7 @@ blacklight scan aws --format html --output reports/blacklight-report.html
 
 HTML reports contain scan context, risk score, severity counts, deterministic correlations, CI/CD gate results when enabled, findings, remediation guidance, and escaped evidence. They use inline styling only, so the generated file can be opened locally without a web server or external assets.
 
-Console, JSON, and HTML reports include scan execution metadata such as provider, selected region, scanners executed, scan status, and duration.
+Console, JSON, and HTML reports include scan execution metadata such as provider, selected region, scanners executed, scan status, and duration. AWS scans also include best-effort environment identity context such as account ID, caller ARN, partition, selected profile, and resolved region so saved reports can identify the environment that produced them.
 
 ## CI/CD security gate
 
@@ -133,6 +133,7 @@ Blacklight writes the report before returning the gate exit code, so failed pipe
 
 ```text
 blacklight_security/
+├── aws_context.py
 ├── cli.py
 ├── html_reporting.py
 ├── models.py
@@ -152,7 +153,7 @@ blacklight_security/
         └── guardduty.py
 ```
 
-The CLI parses commands and hands execution to the scan runner. The runner coordinates registered scanners and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes those findings after detection. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
+The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes those findings after detection. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
 
 The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_flask/` for history and reference. It is not the current Blacklight entry point.
 
@@ -161,7 +162,6 @@ The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_fl
 Next priorities:
 
 - Deeper AWS checks and additional AWS services
-- More deterministic correlation rules with test coverage
 - Contributor-facing scanner registration documentation
 - PyPI publishing
 - Versioned GitHub releases
