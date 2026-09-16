@@ -2,6 +2,23 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.11] - 2026-09-16
+
+### Added
+
+- Deterministic scanner-level coverage assessment with `FULL`, `PARTIAL`, `LIMITED`, and `UNKNOWN` states.
+- Risk-confidence labels (`HIGH`, `REDUCED`, `LOW`, `UNKNOWN`) derived from observable scan coverage rather than probability estimates.
+- Coverage metadata in console, JSON, and HTML reports, including affected scanners, completion percentage, and `ERROR` finding count.
+- JSON scan schema version 5 with nested `scan.coverage` metadata.
+- Per-scanner AWS `ClientError` isolation so one failed service can become a normalized `ERROR` finding while healthy scanners continue.
+- Dedicated coverage/confidence documentation and tests for full, partial, limited, and unknown scan states.
+
+### Changed
+
+- Scan status is now `FAILED` when every selected scanner returns inspection errors, `PARTIAL` when only some scanners are affected, and `COMPLETE` when all selected scanners finish without `ERROR` findings.
+- A fully failed scan returns exit code `2` after the report is rendered or written, preventing CI/CD from treating zero usable scanner coverage as a successful assessment.
+- Security risk remains independent from coverage: `ERROR` findings still add zero risk points.
+
 ## [0.1.0-alpha.10] - 2026-09-16
 
 ### Added
