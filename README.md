@@ -14,6 +14,8 @@ The Lambda scanner checks whether Lambda Function URLs allow unauthenticated pub
 
 Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score. See [docs/risk-engine.md](docs/risk-engine.md) for the scoring model and current correlation rules.
 
+Risk and scan coverage are reported separately. Scanner `ERROR` findings do not add security-risk points, but they reduce confidence that the observed risk score represents the entire selected scan scope. Coverage is reported as `FULL`, `PARTIAL`, `LIMITED`, or `UNKNOWN`, with a corresponding deterministic risk-confidence label. See [docs/coverage-confidence.md](docs/coverage-confidence.md).
+
 ## Install from source
 
 PyPI publishing is planned but is **not live yet**.
@@ -92,9 +94,11 @@ Generate a self-contained HTML report:
 blacklight scan aws --format html --output reports/blacklight-report.html
 ```
 
-HTML reports contain scan context, risk score, severity counts, deterministic correlations, CI/CD gate results when enabled, findings, remediation guidance, and escaped evidence. They use inline styling only, so the generated file can be opened locally without a web server or external assets.
+HTML reports contain scan context, coverage and risk confidence, risk score, severity counts, deterministic correlations, CI/CD gate results when enabled, findings, remediation guidance, and escaped evidence. They use inline styling only, so the generated file can be opened locally without a web server or external assets.
 
-Console, JSON, and HTML reports include scan execution metadata such as provider, selected region, scanners executed, scan status, and duration. AWS scans also include best-effort environment identity context such as account ID, caller ARN, partition, selected profile, and resolved region so saved reports can identify the environment that produced them.
+Console, JSON, and HTML reports include scan execution metadata such as provider, selected region, scanners executed, scan status, duration, coverage state, affected scanners, and risk confidence. AWS scans also include best-effort environment identity context such as account ID, caller ARN, partition, selected profile, and resolved region so saved reports can identify the environment that produced them.
+
+If an individual AWS scanner encounters an AWS API `ClientError`, Blacklight records a normalized `ERROR` finding for that scanner and continues with the remaining selected scanners. This preserves usable evidence from healthy services while making the coverage gap explicit.
 
 ## CI/CD security gate
 
@@ -107,10 +111,12 @@ blacklight scan aws --fail-on high
 Supported thresholds are `low`, `medium`, `high`, and `critical`. A threshold includes that severity and anything above it. For example, `--fail-on high` fails on both HIGH and CRITICAL findings.
 
 ```text
-0 = scan completed and the security gate passed
+0 = scan produced a usable assessment and any requested security gate passed
 1 = security threshold was reached or exceeded
-2 = Blacklight could not complete the scan because of an operational or credential error
+2 = Blacklight could not complete a usable scan because of an operational failure, credential failure, or zero fully evaluated selected scanners
 ```
+
+A `PARTIAL` scan can still return `0` when no requested security gate fails. The report will show `REDUCED` risk confidence and identify the affected scanners. A `LIMITED` scan, where every selected scanner returned inspection errors, returns `2` after the report is rendered or written.
 
 Example GitHub Actions step:
 
@@ -119,7 +125,7 @@ Example GitHub Actions step:
   run: blacklight scan aws --fail-on high
 ```
 
-JSON output includes a deterministic `policy` object describing the selected threshold, whether the gate passed, how many findings triggered it, and the highest detected security severity.
+JSON output includes a deterministic `policy` object describing the selected threshold, whether the gate passed, how many findings triggered it, and the highest detected security severity. Scan metadata also includes a deterministic `coverage` object describing inspection completeness independently from security risk.
 
 The gate can also be combined with an HTML artifact:
 
@@ -127,21 +133,22 @@ The gate can also be combined with an HTML artifact:
 blacklight scan aws --fail-on high --format html --output reports/blacklight-report.html
 ```
 
-Blacklight writes the report before returning the gate exit code, so failed pipeline runs can still retain the report as an artifact.
+Blacklight writes the report before returning the final gate or coverage exit code, so failed pipeline runs can still retain the report as an artifact.
 
 ## Architecture
 
 ```text
 blacklight_security/
-├── aws_context.py
 ├── cli.py
+├── coverage.py
 ├── html_reporting.py
 ├── models.py
 ├── policy.py
 ├── registry.py
-├── runner.py
 ├── reporting.py
 ├── risk.py
+├── runner.py
+├── scan_context.py
 └── scanners/
     └── aws/
         ├── s3.py
@@ -153,7 +160,7 @@ blacklight_security/
         └── guardduty.py
 ```
 
-The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes those findings after detection. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
+The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, isolates per-scanner AWS API failures, tracks coverage, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes successfully observed security findings after detection. The coverage layer describes how completely the selected scope was inspected without changing the risk score. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
 
 The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_flask/` for history and reference. It is not the current Blacklight entry point.
 
