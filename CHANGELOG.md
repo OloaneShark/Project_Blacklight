@@ -2,6 +2,20 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.10] - 2026-09-16
+
+### Added
+
+- Correlation for public S3 bucket policy exposure combined with incomplete bucket-level Block Public Access on the same bucket.
+- Correlation for root MFA being disabled while CloudTrail audit visibility has a high-severity gap.
+- Correlation for regional internet-exposed EC2, RDS, or Lambda resources while GuardDuty is not enabled in the scanned region.
+- Unit coverage for new correlations and false-positive boundaries.
+
+### Changed
+
+- A completely missing CloudTrail trail now counts as an audit-visibility gap for critical-finding correlations, not only an existing trail that stopped logging.
+- Same-resource correlation grouping now keys on provider, service, and resource ID instead of resource ID alone.
+
 ## [0.1.0-alpha.9] - 2026-09-13
 
 ### Added
