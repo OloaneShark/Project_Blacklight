@@ -55,7 +55,7 @@ def _result() -> ScanResult:
     )
 
 
-def test_html_report_contains_scan_identity_risk_policy_and_findings():
+def test_html_report_contains_scan_identity_coverage_risk_policy_and_findings():
     result = _result()
     policy = evaluate_policy(result.findings, "high")
 
@@ -63,6 +63,9 @@ def test_html_report_contains_scan_identity_risk_policy_and_findings():
 
     assert report.startswith("<!doctype html>")
     assert "Project Blacklight" in report
+    assert "Coverage &amp; Risk Confidence" in report
+    assert "Confidence: HIGH" in report
+    assert "2/2 scanners fully evaluated" in report
     assert "CI/CD Security Gate" in report
     assert "FAIL" in report
     assert "us-east-1" in report
@@ -73,6 +76,30 @@ def test_html_report_contains_scan_identity_risk_policy_and_findings():
     assert "125 ms" in report
     assert "test.public" in report
     assert "Root MFA enabled" in report
+
+
+def test_html_report_shows_reduced_confidence_when_scanner_has_errors():
+    result = _result()
+    result.findings.append(
+        Finding(
+            check_id="aws.iam.list_users",
+            provider="aws",
+            service="iam",
+            resource_type="aws_iam_identity",
+            resource_id="aws-account",
+            severity=Severity.ERROR,
+            title="IAM inspection failed",
+            description="Access denied.",
+        )
+    )
+    result.scanner_error_counts["iam"] = 1
+
+    report = render_html(result)
+
+    assert "Confidence: REDUCED" in report
+    assert "PARTIAL" in report
+    assert "1/2 scanners fully evaluated" in report
+    assert "Affected Scanners</span>iam" in report
 
 
 def test_html_report_escapes_finding_and_evidence_values():

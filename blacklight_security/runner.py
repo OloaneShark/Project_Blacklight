@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from botocore.exceptions import ClientError
+
+from blacklight_security.coverage import CoverageAssessment, assess_coverage
 from blacklight_security.models import Finding, Severity
 from blacklight_security.registry import scanner_specs
 from blacklight_security.scan_context import ScanContext, resolve_scan_context
@@ -21,14 +24,38 @@ class ScanResult:
     started_at: datetime
     completed_at: datetime
     context: ScanContext | None = None
+    scanner_error_counts: dict[str, int] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.scanner_error_counts:
+            return
+
+        inferred: dict[str, int] = {}
+        for finding in self.findings:
+            if finding.severity is not Severity.ERROR:
+                continue
+            if finding.service in self.scanners:
+                scanner = finding.service
+            elif len(self.scanners) == 1:
+                scanner = self.scanners[0]
+            else:
+                continue
+            inferred[scanner] = inferred.get(scanner, 0) + 1
+        self.scanner_error_counts.update(inferred)
 
     @property
     def duration_ms(self) -> int:
         return max(0, int((self.completed_at - self.started_at).total_seconds() * 1000))
 
     @property
+    def coverage(self) -> CoverageAssessment:
+        return assess_coverage(self.scanners, self.scanner_error_counts)
+
+    @property
     def status(self) -> str:
-        if any(finding.severity is Severity.ERROR for finding in self.findings):
+        if self.coverage.status == "LIMITED":
+            return "FAILED"
+        if self.coverage.status == "PARTIAL":
             return "PARTIAL"
         return "COMPLETE"
 
@@ -56,6 +83,7 @@ class ScanResult:
             "requested_service": self.requested_service,
             "region": self.region,
             "context": context,
+            "coverage": self.coverage.to_dict(),
             "scanners": self.scanners,
             "scanner_count": len(self.scanners),
             "finding_count": len(self.findings),
@@ -78,10 +106,21 @@ class ScanRunner:
         specs = scanner_specs(self.provider, selected)
         findings: list[Finding] = []
         executed: list[str] = []
+        scanner_error_counts: dict[str, int] = {}
 
         for spec in specs:
-            findings.extend(spec.scanner_cls(self.session).scan())
+            try:
+                scanner_findings = spec.scanner_cls(self.session).scan()
+            except ClientError as error:
+                scanner_findings = [self._scanner_client_error(spec.name, error)]
+
+            findings.extend(scanner_findings)
             executed.append(spec.name)
+            error_count = sum(
+                finding.severity is Severity.ERROR for finding in scanner_findings
+            )
+            if error_count:
+                scanner_error_counts[spec.name] = error_count
 
         completed_at = datetime.now(timezone.utc)
         return ScanResult(
@@ -93,4 +132,26 @@ class ScanRunner:
             started_at=started_at,
             completed_at=completed_at,
             context=context,
+            scanner_error_counts=scanner_error_counts,
+        )
+
+    def _scanner_client_error(self, scanner_name: str, error: ClientError) -> Finding:
+        code = error.response.get("Error", {}).get("Code", "Unknown")
+        return Finding(
+            check_id=f"{self.provider}.{scanner_name}.scanner_execution",
+            provider=self.provider,
+            service=scanner_name,
+            resource_type=f"{self.provider}_scanner",
+            resource_id=scanner_name,
+            severity=Severity.ERROR,
+            title=f"Blacklight could not complete the {scanner_name} scanner",
+            description=(
+                f"The provider returned {code} before the {scanner_name} scanner could "
+                "complete its selected checks."
+            ),
+            remediation=(
+                "Verify the scanning identity has the required read permissions and retry "
+                "the affected scanner."
+            ),
+            evidence={"provider_error_code": code, "scanner": scanner_name},
         )
