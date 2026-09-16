@@ -41,7 +41,7 @@ def _result() -> ScanResult:
     )
 
 
-def test_console_report_includes_resolved_identity_context():
+def test_console_report_includes_resolved_identity_and_coverage_context():
     rendered = render_console(_result())
 
     assert "Profile: audit-profile" in rendered
@@ -49,14 +49,20 @@ def test_console_report_includes_resolved_identity_context():
     assert "Partition: aws-us-gov" in rendered
     assert "Principal: arn:aws-us-gov:sts::123456789012:assumed-role/Audit/session" in rendered
     assert "Identity: RESOLVED" in rendered
+    assert "Coverage: FULL (1/1 scanners fully evaluated, 100.0%)" in rendered
+    assert "Risk confidence: HIGH" in rendered
 
 
-def test_json_report_uses_schema_four_and_nested_identity_context():
+def test_json_report_uses_schema_five_with_identity_and_coverage_context():
     payload = json.loads(render_json(_result()))
 
-    assert payload["schema_version"] == "4"
+    assert payload["schema_version"] == "5"
     assert payload["scan"]["context"]["profile"] == "audit-profile"
     identity = payload["scan"]["context"]["identity"]
     assert identity["account_id"] == "123456789012"
     assert identity["partition"] == "aws-us-gov"
     assert identity["status"] == "RESOLVED"
+    coverage = payload["scan"]["coverage"]
+    assert coverage["status"] == "FULL"
+    assert coverage["risk_confidence"] == "HIGH"
+    assert coverage["complete_scanner_percent"] == 100.0
