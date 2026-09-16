@@ -89,6 +89,15 @@ def _run_aws(args: argparse.Namespace) -> int:
     else:
         print(rendered)
 
+    if getattr(result, "status", None) == "FAILED":
+        print(
+            "Blacklight scan coverage failed: every selected scanner returned one or more "
+            "inspection errors. Review the report and scanning permissions before treating the "
+            "risk score as a complete assessment.",
+            file=sys.stderr,
+        )
+        return 2
+
     if policy.enabled and not policy.passed:
         print(
             f"Blacklight security gate failed: {policy.triggered_count} finding(s) "
