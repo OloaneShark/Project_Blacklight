@@ -40,6 +40,8 @@ def render_console(
         metadata = value.metadata_dict()
         context = metadata.get("context", {})
         identity = context.get("identity", {}) if isinstance(context, dict) else {}
+        coverage = metadata.get("coverage", {})
+        affected_scanners = coverage.get("affected_scanners", [])
         lines.extend(
             [
                 f"Status: {metadata['status']}",
@@ -52,8 +54,23 @@ def render_console(
                 f"Identity: {identity.get('status') or 'UNAVAILABLE'}",
                 f"Scanners: {', '.join(metadata['scanners']) or 'none'}",
                 f"Duration: {metadata['duration_ms']} ms",
+                (
+                    f"Coverage: {coverage.get('status', 'UNKNOWN')} "
+                    f"({coverage.get('complete_scanner_count', 0)}/"
+                    f"{coverage.get('scanner_count', 0)} scanners fully evaluated, "
+                    f"{coverage.get('complete_scanner_percent', 0.0)}%)"
+                ),
+                f"Risk confidence: {coverage.get('risk_confidence', 'UNKNOWN')}",
             ]
         )
+        if affected_scanners:
+            lines.append(
+                "Coverage gaps: "
+                f"{', '.join(affected_scanners)} "
+                f"({coverage.get('error_finding_count', 0)} ERROR finding(s))"
+            )
+        if coverage.get("message"):
+            lines.append(f"Coverage note: {coverage['message']}")
         if identity.get("error"):
             lines.append(f"Identity error: {identity['error']}")
         lines.append("")
@@ -122,7 +139,7 @@ def render_json(
 ) -> str:
     findings = _findings(value)
     if hasattr(value, "metadata_dict"):
-        schema_version = "4"
+        schema_version = "5"
     elif policy is not None:
         schema_version = "3"
     else:
