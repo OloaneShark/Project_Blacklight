@@ -100,37 +100,53 @@ Console, JSON, and HTML reports include scan execution metadata such as provider
 
 If an individual AWS scanner encounters an AWS API `ClientError`, Blacklight records a normalized `ERROR` finding for that scanner and continues with the remaining selected scanners. This preserves usable evidence from healthy services while making the coverage gap explicit.
 
-## CI/CD security gate
+## CI/CD gates
 
-Blacklight can act as a deterministic pipeline gate by returning a non-zero exit code when findings meet a requested severity threshold.
+Blacklight can enforce deterministic security and scan-completeness requirements in CI/CD.
+
+Security finding gate:
 
 ```bash
 blacklight scan aws --fail-on high
 ```
 
-Supported thresholds are `low`, `medium`, `high`, and `critical`. A threshold includes that severity and anything above it. For example, `--fail-on high` fails on both HIGH and CRITICAL findings.
+Supported security thresholds are `low`, `medium`, `high`, and `critical`. A threshold includes that severity and anything above it. For example, `--fail-on high` fails on both HIGH and CRITICAL findings.
 
-```text
-0 = scan produced a usable assessment and any requested security gate passed
-1 = security threshold was reached or exceeded
-2 = Blacklight could not complete a usable scan because of an operational failure, credential failure, or zero fully evaluated selected scanners
+Full-coverage gate:
+
+```bash
+blacklight scan aws --require-full-coverage
 ```
 
-A `PARTIAL` scan can still return `0` when no requested security gate fails. The report will show `REDUCED` risk confidence and identify the affected scanners. A `LIMITED` scan, where every selected scanner returned inspection errors, returns `2` after the report is rendered or written.
+When enabled, any `PARTIAL`, `LIMITED`, or `UNKNOWN` coverage result fails the coverage gate. This does not change the risk score; it only requires every selected scanner to complete without `ERROR` findings.
+
+Both gates can be combined:
+
+```bash
+blacklight scan aws --fail-on high --require-full-coverage
+```
+
+```text
+0 = requested security and coverage gates passed
+1 = security threshold was reached or exceeded
+2 = operational/credential failure, zero usable scanner coverage, or requested full-coverage gate failure
+```
+
+A `PARTIAL` scan can still return `0` when `--require-full-coverage` is not enabled and no security gate fails. With `--require-full-coverage`, the same partial scan returns `2`. A `LIMITED` scan, where every selected scanner returned inspection errors, always returns `2` after the report is rendered or written.
 
 Example GitHub Actions step:
 
 ```yaml
-- name: Run Project Blacklight security gate
-  run: blacklight scan aws --fail-on high
+- name: Run Project Blacklight gates
+  run: blacklight scan aws --fail-on high --require-full-coverage
 ```
 
-JSON output includes a deterministic `policy` object describing the selected threshold, whether the gate passed, how many findings triggered it, and the highest detected security severity. Scan metadata also includes a deterministic `coverage` object describing inspection completeness independently from security risk.
+JSON output includes a deterministic `policy` object for the security threshold, a `coverage_gate` object for the optional full-coverage requirement, and a `scan.coverage` object describing inspection completeness independently from security risk.
 
 The gate can also be combined with an HTML artifact:
 
 ```bash
-blacklight scan aws --fail-on high --format html --output reports/blacklight-report.html
+blacklight scan aws --fail-on high --require-full-coverage --format html --output reports/blacklight-report.html
 ```
 
 Blacklight writes the report before returning the final gate or coverage exit code, so failed pipeline runs can still retain the report as an artifact.
