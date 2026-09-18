@@ -1,4 +1,4 @@
-from blacklight_security.coverage import assess_coverage
+from blacklight_security.coverage import assess_coverage, evaluate_coverage_gate
 
 
 def test_full_coverage_has_high_risk_confidence():
@@ -43,3 +43,33 @@ def test_no_scanners_produces_unknown_coverage():
     assert coverage.status == "UNKNOWN"
     assert coverage.risk_confidence == "UNKNOWN"
     assert coverage.scanner_count == 0
+
+
+def test_full_coverage_gate_passes_only_full_coverage():
+    full = assess_coverage(["s3", "iam"], {})
+    partial = assess_coverage(["s3", "iam"], {"iam": 1})
+
+    passing = evaluate_coverage_gate(full, True)
+    failing = evaluate_coverage_gate(partial, True)
+
+    assert passing.enabled is True
+    assert passing.passed is True
+    assert passing.required_status == "FULL"
+    assert passing.actual_status == "FULL"
+
+    assert failing.enabled is True
+    assert failing.passed is False
+    assert failing.actual_status == "PARTIAL"
+    assert failing.risk_confidence == "REDUCED"
+    assert failing.affected_scanners == ("iam",)
+
+
+def test_coverage_gate_is_disabled_by_default():
+    partial = assess_coverage(["s3", "iam"], {"iam": 1})
+
+    gate = evaluate_coverage_gate(partial)
+
+    assert gate.enabled is False
+    assert gate.passed is True
+    assert gate.required_status is None
+    assert gate.actual_status == "PARTIAL"
