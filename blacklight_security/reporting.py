@@ -8,6 +8,7 @@ from blacklight_security.models import Finding, Severity
 from blacklight_security.risk import assess_risk
 
 if TYPE_CHECKING:
+    from blacklight_security.coverage import CoverageGateResult
     from blacklight_security.policy import PolicyResult
     from blacklight_security.runner import ScanResult
 
@@ -30,6 +31,7 @@ def _findings(value: list[Finding] | ScanResult) -> list[Finding]:
 def render_console(
     value: list[Finding] | ScanResult,
     policy: PolicyResult | None = None,
+    coverage_gate: CoverageGateResult | None = None,
 ) -> str:
     findings = _findings(value)
     counts = Counter(finding.severity for finding in findings)
@@ -71,6 +73,12 @@ def render_console(
             )
         if coverage.get("message"):
             lines.append(f"Coverage note: {coverage['message']}")
+        if coverage_gate and coverage_gate.enabled:
+            gate_status = "PASS" if coverage_gate.passed else "FAIL"
+            lines.append(
+                f"Coverage gate: {gate_status} "
+                f"(require {coverage_gate.required_status}, actual {coverage_gate.actual_status})"
+            )
         if identity.get("error"):
             lines.append(f"Identity error: {identity['error']}")
         lines.append("")
@@ -136,9 +144,12 @@ def render_console(
 def render_json(
     value: list[Finding] | ScanResult,
     policy: PolicyResult | None = None,
+    coverage_gate: CoverageGateResult | None = None,
 ) -> str:
     findings = _findings(value)
-    if hasattr(value, "metadata_dict"):
+    if hasattr(value, "metadata_dict") and coverage_gate is not None:
+        schema_version = "6"
+    elif hasattr(value, "metadata_dict"):
         schema_version = "5"
     elif policy is not None:
         schema_version = "3"
@@ -155,4 +166,6 @@ def render_json(
         payload["scan"] = value.metadata_dict()
     if policy is not None:
         payload["policy"] = policy.to_dict()
+    if coverage_gate is not None:
+        payload["coverage_gate"] = coverage_gate.to_dict()
     return json.dumps(payload, indent=2)

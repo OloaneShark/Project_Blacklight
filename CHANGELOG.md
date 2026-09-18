@@ -2,6 +2,22 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.12] - 2026-09-18
+
+### Added
+
+- Optional `--require-full-coverage` CI/CD gate that requires every selected scanner to complete without `ERROR` findings.
+- Deterministic coverage-gate result with required status, actual coverage state, risk-confidence label, and affected scanners.
+- Coverage-gate status in console, JSON, and standalone HTML reports.
+- JSON scan schema version 6 when coverage-gate metadata is included.
+- Unit coverage for full/partial coverage gate behavior, CLI exit codes, JSON serialization, HTML rendering, and combined security/coverage gate precedence.
+
+### Changed
+
+- Partial coverage remains reportable without failing by default, but returns exit code `2` when full coverage was explicitly required.
+- Coverage-gate failure takes precedence over security-gate exit code `1` because the requested assessment completeness was not achieved.
+- Reports are still rendered or written before the final gate exit code is returned.
+
 ## [0.1.0-alpha.11] - 2026-09-16
 
 ### Added

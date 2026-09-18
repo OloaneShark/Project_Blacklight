@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from blacklight_security.cli import main
+from blacklight_security.coverage import assess_coverage
 from blacklight_security.models import Finding, Severity
 
 
@@ -16,7 +17,7 @@ def _result():
         title="Healthy",
         description="Healthy test resource.",
     )
-    return SimpleNamespace(findings=[finding])
+    return SimpleNamespace(findings=[finding], status="COMPLETE", coverage=assess_coverage(["test"], {}))
 
 
 def test_html_output_requires_output_path():

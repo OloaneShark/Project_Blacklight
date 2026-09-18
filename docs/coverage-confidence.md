@@ -28,17 +28,35 @@ Coverage maps to a simple confidence label:
 
 These labels are deterministic completeness labels, not statistical probabilities.
 
-## Exit-code behavior
+## Full-coverage CI/CD gate
 
-Blacklight still distinguishes security-policy failures from operational coverage failures:
+By default, partial coverage is reported but does not fail an otherwise successful scan. CI/CD users can require complete inspection with:
 
-```text
-0 = scan completed enough to produce a usable assessment and any requested security gate passed
-1 = the requested `--fail-on` security threshold was reached or exceeded
-2 = Blacklight could not complete a usable scan, including the case where every selected scanner failed
+```bash
+blacklight scan aws --require-full-coverage
 ```
 
-A `PARTIAL` scan can still return `0` when no security gate fails because the completed scanners may provide useful evidence. The report explicitly marks the reduced confidence and lists the affected scanners.
+The coverage gate passes only when coverage is `FULL`. `PARTIAL`, `LIMITED`, and `UNKNOWN` fail the requested coverage requirement. The gate does not add risk points or reinterpret findings.
+
+It can be combined with the security gate:
+
+```bash
+blacklight scan aws --fail-on high --require-full-coverage
+```
+
+If both gates fail, Blacklight returns exit code `2` because the requested assessment completeness was not achieved; the report still contains any observed security findings.
+
+## Exit-code behavior
+
+Blacklight distinguishes security-policy failures from operational or requested coverage failures:
+
+```text
+0 = requested security and coverage gates passed
+1 = the requested `--fail-on` security threshold was reached or exceeded
+2 = operational/credential failure, zero usable scanner coverage, or requested full-coverage gate failure
+```
+
+A `PARTIAL` scan can still return `0` when no security gate fails and `--require-full-coverage` is not enabled because the completed scanners may provide useful evidence. The report explicitly marks the reduced confidence and lists the affected scanners.
 
 A `LIMITED` scan returns exit code `2` after the report is rendered or written, so CI/CD systems do not treat a completely failed inspection as a successful security assessment.
 
@@ -67,3 +85,20 @@ Scan metadata includes a `coverage` object similar to:
 ```
 
 The risk score remains based only on deterministic security findings. Coverage never adds risk points by itself.
+
+## Coverage gate JSON
+
+When a coverage gate result is included, JSON schema version 6 adds a top-level `coverage_gate` object:
+
+```json
+{
+  "enabled": true,
+  "passed": false,
+  "required_status": "FULL",
+  "actual_status": "PARTIAL",
+  "risk_confidence": "REDUCED",
+  "affected_scanners": ["iam"]
+}
+```
+
+This gate result is separate from both `scan.coverage` and the security `policy` object.

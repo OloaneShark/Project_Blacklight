@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from blacklight_security.cli import main
+from blacklight_security.coverage import assess_coverage
 from blacklight_security.models import Finding, Severity
 
 
@@ -19,7 +20,7 @@ def _finding(severity: Severity) -> Finding:
 
 
 def test_cli_returns_one_when_fail_on_threshold_is_hit():
-    result = SimpleNamespace(findings=[_finding(Severity.HIGH)])
+    result = SimpleNamespace(findings=[_finding(Severity.HIGH)], status="COMPLETE", coverage=assess_coverage(["test"], {}))
 
     with (
         patch("blacklight_security.cli.boto3.Session"),
@@ -32,7 +33,7 @@ def test_cli_returns_one_when_fail_on_threshold_is_hit():
 
 
 def test_cli_returns_zero_when_threshold_is_not_hit():
-    result = SimpleNamespace(findings=[_finding(Severity.MEDIUM)])
+    result = SimpleNamespace(findings=[_finding(Severity.MEDIUM)], status="COMPLETE", coverage=assess_coverage(["test"], {}))
 
     with (
         patch("blacklight_security.cli.boto3.Session"),
@@ -45,7 +46,7 @@ def test_cli_returns_zero_when_threshold_is_not_hit():
 
 
 def test_cli_without_gate_preserves_normal_success_exit():
-    result = SimpleNamespace(findings=[_finding(Severity.CRITICAL)])
+    result = SimpleNamespace(findings=[_finding(Severity.CRITICAL)], status="COMPLETE", coverage=assess_coverage(["test"], {}))
 
     with (
         patch("blacklight_security.cli.boto3.Session"),

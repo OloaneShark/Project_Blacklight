@@ -36,6 +36,28 @@ class CoverageAssessment:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class CoverageGateResult:
+    """Deterministic CI/CD gate result for scan completeness."""
+
+    enabled: bool
+    passed: bool
+    required_status: str | None
+    actual_status: str
+    risk_confidence: str
+    affected_scanners: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "enabled": self.enabled,
+            "passed": self.passed,
+            "required_status": self.required_status,
+            "actual_status": self.actual_status,
+            "risk_confidence": self.risk_confidence,
+            "affected_scanners": list(self.affected_scanners),
+        }
+
+
 def assess_coverage(
     scanners: list[str],
     scanner_error_counts: dict[str, int] | None = None,
@@ -100,4 +122,21 @@ def assess_coverage(
         error_finding_count=error_count,
         affected_scanners=affected,
         message=message,
+    )
+
+
+def evaluate_coverage_gate(
+    coverage: CoverageAssessment,
+    require_full_coverage: bool = False,
+) -> CoverageGateResult:
+    """Evaluate an optional full-coverage CI/CD requirement."""
+
+    passed = not require_full_coverage or coverage.status == "FULL"
+    return CoverageGateResult(
+        enabled=require_full_coverage,
+        passed=passed,
+        required_status="FULL" if require_full_coverage else None,
+        actual_status=coverage.status,
+        risk_confidence=coverage.risk_confidence,
+        affected_scanners=coverage.affected_scanners,
     )

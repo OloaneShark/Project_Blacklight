@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+from blacklight_security.coverage import evaluate_coverage_gate
 from blacklight_security.html_reporting import render_html
 from blacklight_security.models import Finding, Severity
 from blacklight_security.policy import evaluate_policy
@@ -109,3 +110,16 @@ def test_html_report_escapes_finding_and_evidence_values():
     assert "Public &lt;script&gt;alert(&#x27;x&#x27;)&lt;/script&gt;" in report
     assert "bucket-&lt;unsafe&gt;" in report
     assert "&lt;unsafe&gt;&amp;value" in report
+
+
+def test_html_report_contains_coverage_gate_result():
+    result = _result()
+    result.scanner_error_counts["iam"] = 1
+    gate = evaluate_coverage_gate(result.coverage, True)
+
+    report = render_html(result, coverage_gate=gate)
+
+    assert "CI/CD Coverage Gate" in report
+    assert "Require FULL coverage" in report
+    assert "actual PARTIAL" in report
+    assert "FAIL" in report
