@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 
+from blacklight_security.coverage import evaluate_coverage_gate
 from blacklight_security.models import Finding, Severity
 from blacklight_security.reporting import render_console, render_json
 from blacklight_security.runner import ScanResult
@@ -66,3 +67,16 @@ def test_json_report_uses_schema_five_with_identity_and_coverage_context():
     assert coverage["status"] == "FULL"
     assert coverage["risk_confidence"] == "HIGH"
     assert coverage["complete_scanner_percent"] == 100.0
+
+
+def test_json_report_uses_schema_six_when_coverage_gate_is_included():
+    result = _result()
+    gate = evaluate_coverage_gate(result.coverage, True)
+
+    payload = json.loads(render_json(result, None, gate))
+
+    assert payload["schema_version"] == "6"
+    assert payload["coverage_gate"]["enabled"] is True
+    assert payload["coverage_gate"]["passed"] is True
+    assert payload["coverage_gate"]["required_status"] == "FULL"
+    assert payload["coverage_gate"]["actual_status"] == "FULL"
