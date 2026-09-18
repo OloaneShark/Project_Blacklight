@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, ProfileNotFound
 
 from blacklight_security import __version__
+from blacklight_security.coverage import evaluate_coverage_gate
 from blacklight_security.html_reporting import render_html
 from blacklight_security.policy import evaluate_policy
 from blacklight_security.registry import scanner_names
@@ -51,6 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["low", "medium", "high", "critical"],
         help="Exit with code 1 when a finding at or above this severity is detected",
     )
+    aws.add_argument(
+        "--require-full-coverage",
+        action="store_true",
+        help="Exit with code 2 unless every selected scanner completes without ERROR findings",
+    )
 
     return parser
 
@@ -75,12 +81,14 @@ def _run_aws(args: argparse.Namespace) -> int:
         return 2
 
     policy = evaluate_policy(result.findings, args.fail_on)
+    coverage_gate = evaluate_coverage_gate(result.coverage, args.require_full_coverage)
+
     if args.output_format == "json":
-        rendered = render_json(result, policy)
+        rendered = render_json(result, policy, coverage_gate)
     elif args.output_format == "html":
-        rendered = render_html(result, policy)
+        rendered = render_html(result, policy, coverage_gate)
     else:
-        rendered = render_console(result, policy)
+        rendered = render_console(result, policy, coverage_gate)
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -94,6 +102,15 @@ def _run_aws(args: argparse.Namespace) -> int:
             "Blacklight scan coverage failed: every selected scanner returned one or more "
             "inspection errors. Review the report and scanning permissions before treating the "
             "risk score as a complete assessment.",
+            file=sys.stderr,
+        )
+        return 2
+
+    if coverage_gate.enabled and not coverage_gate.passed:
+        affected = ", ".join(coverage_gate.affected_scanners) or "unknown"
+        print(
+            "Blacklight coverage gate failed: FULL coverage was required but the scan "
+            f"reported {coverage_gate.actual_status}. Affected scanners: {affected}.",
             file=sys.stderr,
         )
         return 2
