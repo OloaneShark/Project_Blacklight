@@ -9,6 +9,7 @@ from blacklight_security.models import Finding, Severity
 from blacklight_security.risk import assess_risk
 
 if TYPE_CHECKING:
+    from blacklight_security.coverage import CoverageGateResult
     from blacklight_security.policy import PolicyResult
     from blacklight_security.runner import ScanResult
 
@@ -68,6 +69,7 @@ def _finding_card(finding: Finding) -> str:
 def render_html(
     value: list[Finding] | ScanResult,
     policy: PolicyResult | None = None,
+    coverage_gate: CoverageGateResult | None = None,
 ) -> str:
     """Render a self-contained, escaped HTML security report."""
 
@@ -136,6 +138,21 @@ def render_html(
         """
     else:
         policy_section = ""
+
+    if coverage_gate and coverage_gate.enabled:
+        coverage_gate_status = "PASS" if coverage_gate.passed else "FAIL"
+        coverage_gate_class = "gate-pass" if coverage_gate.passed else "gate-fail"
+        coverage_gate_section = f"""
+        <section class="panel">
+          <div class="section-title"><h2>CI/CD Coverage Gate</h2></div>
+          <div class="gate {coverage_gate_class}">
+            <strong>{coverage_gate_status}</strong>
+            <span>Require {_text(coverage_gate.required_status)} coverage · actual {_text(coverage_gate.actual_status)}</span>
+          </div>
+        </section>
+        """
+    else:
+        coverage_gate_section = ""
 
     correlations = ""
     if assessment.correlations:
@@ -319,6 +336,7 @@ def render_html(
   </section>
 
   {coverage_section}
+  {coverage_gate_section}
 
   <section class="panel">
     <div class="section-title"><h2>Severity Summary</h2></div>
