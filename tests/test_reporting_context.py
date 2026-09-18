@@ -80,3 +80,13 @@ def test_json_report_uses_schema_six_when_coverage_gate_is_included():
     assert payload["coverage_gate"]["passed"] is True
     assert payload["coverage_gate"]["required_status"] == "FULL"
     assert payload["coverage_gate"]["actual_status"] == "FULL"
+
+
+def test_console_report_includes_failed_full_coverage_gate():
+    result = _result()
+    result.scanner_error_counts["test"] = 1
+    gate = evaluate_coverage_gate(result.coverage, True)
+
+    rendered = render_console(result, None, gate)
+
+    assert "Coverage gate: FAIL (require FULL, actual LIMITED)" in rendered
