@@ -29,6 +29,13 @@ The policy grants only the API actions currently required by Blacklight's S3, IA
 - `iam:ListUsers`
 - `iam:ListAccessKeys`
 - `iam:GetAccessKeyLastUsed`
+- `iam:ListUserPolicies`
+- `iam:GetUserPolicy`
+- `iam:ListAttachedUserPolicies`
+- `iam:GetPolicy`
+- `iam:GetPolicyVersion`
+
+The additional policy-inspection actions let Blacklight read inline and directly attached managed policies for IAM users. Blacklight currently flags unconditional `Allow` statements that grant both `Action: "*"` and `Resource: "*"`. It does not modify policies or claim to calculate final effective permissions across SCPs, permissions boundaries, explicit denies, or other IAM evaluation layers.
 
 ### AWS CloudTrail
 
