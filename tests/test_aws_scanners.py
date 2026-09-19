@@ -36,6 +36,10 @@ class FakeIAM:
         if name == "list_access_keys":
             old = datetime.now(timezone.utc) - timedelta(days=120)
             return FakePaginator([{"AccessKeyMetadata": [{"AccessKeyId": "AKIAEXAMPLE1234", "CreateDate": old, "Status": "Active"}]}])
+        if name == "list_user_policies":
+            return FakePaginator([{"PolicyNames": []}])
+        if name == "list_attached_user_policies":
+            return FakePaginator([{"AttachedPolicies": []}])
         raise AssertionError(name)
 
     def get_access_key_last_used(self, AccessKeyId):
