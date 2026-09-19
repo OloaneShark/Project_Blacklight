@@ -2,6 +2,22 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.13] - 2026-09-19
+
+### Added
+
+- Deterministic direct IAM user-policy analysis for inline and attached managed policies.
+- HIGH finding when a directly attached user policy contains an unconditional `Allow` statement with both `Action: "*"` and `Resource: "*"`.
+- URL-decoding and JSON normalization for IAM policy documents returned by AWS APIs.
+- Policy evidence that identifies matched policy names, policy type, ARN when available, and matched statement indexes.
+- Read-only IAM permissions for listing and retrieving direct user policies and managed policy versions.
+- Unit coverage for URL-encoded inline policies, attached managed policies, conditioned wildcard statements, narrow policies, and unparseable policy documents.
+
+### Changed
+
+- IAM scan coverage now reflects policy-document retrieval or parsing failures through normalized `ERROR` findings.
+- Blacklight explicitly distinguishes broad policy grants from final effective permissions, which may still be constrained by permissions boundaries, SCPs, explicit denies, and other IAM evaluation layers.
+
 ## [0.1.0-alpha.12] - 2026-09-18
 
 ### Added
