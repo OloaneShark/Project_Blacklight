@@ -44,6 +44,10 @@ Fires when the same S3 bucket has a public bucket-policy finding and S3 server a
 
 Fires when the same S3 bucket is public and bucket-level Block Public Access is not fully enabled.
 
+### `aws.iam.broad_role_permissions_and_trust` (+20)
+
+Fires when the same IAM role has both an unconditional wildcard identity-policy grant and an unconditional wildcard trust principal. The rule represents the combination of broad permissions and broad role-assumption trust; Blacklight still does not claim to calculate final effective permissions or every prerequisite for successful role assumption.
+
 ### `aws.critical_findings_with_cloudtrail_gap` (+15)
 
 Fires when at least one non-CloudTrail CRITICAL finding exists while CloudTrail has a high-severity visibility gap. A visibility gap includes either no configured trail or a configured trail that is not actively logging.
