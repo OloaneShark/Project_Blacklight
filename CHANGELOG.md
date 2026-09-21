@@ -2,6 +2,24 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.17] - 2026-09-21
+
+### Added
+
+- Release-package validation job in CI that builds both wheel and source distributions, runs `twine check`, installs the built wheel into an isolated virtual environment, and smoke-tests the `blacklight` command.
+- Dedicated `.github/workflows/release.yml` workflow for PyPI Trusted Publishing through GitHub Actions OIDC.
+- Release-tag guard requiring the GitHub release tag to match `blacklight_security.__version__`.
+- Isolated PyPI publish job using the `pypi` GitHub environment and job-scoped `id-token: write`.
+- `release` optional dependency group with PyPA `build` and `twine`.
+- PyPI publishing guide covering Trusted Publisher setup, build validation, release flow, and immutable-version handling.
+- Additional package metadata URLs for homepage, documentation, and changelog.
+
+### Changed
+
+- README links that need to render on PyPI now use absolute GitHub URLs.
+- Python build artifacts are ignored by Git.
+- Roadmap marks release automation as prepared while keeping the first PyPI publication dependent on one-time Trusted Publisher activation.
+
 ## [0.1.0-alpha.16] - 2026-09-21
 
 ### Added
