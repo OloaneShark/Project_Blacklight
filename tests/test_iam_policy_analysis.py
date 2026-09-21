@@ -48,6 +48,10 @@ class PolicyIAM:
                     }
                 )
             return FakePaginator([{"AttachedPolicies": policies}])
+        if name == "list_groups":
+            return FakePaginator([{"Groups": []}])
+        if name == "list_roles":
+            return FakePaginator([{"Roles": []}])
         raise AssertionError(name)
 
     def get_user_policy(self, UserName, PolicyName):

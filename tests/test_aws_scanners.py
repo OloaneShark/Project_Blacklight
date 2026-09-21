@@ -40,6 +40,10 @@ class FakeIAM:
             return FakePaginator([{"PolicyNames": []}])
         if name == "list_attached_user_policies":
             return FakePaginator([{"AttachedPolicies": []}])
+        if name == "list_groups":
+            return FakePaginator([{"Groups": []}])
+        if name == "list_roles":
+            return FakePaginator([{"Roles": []}])
         raise AssertionError(name)
 
     def get_access_key_last_used(self, AccessKeyId):
