@@ -187,7 +187,6 @@ The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_fl
 Next priorities:
 
 - Deeper AWS checks and additional AWS services
-- Contributor-facing scanner registration documentation
 - PyPI publishing
 - Versioned GitHub releases
 - Standalone executables
@@ -197,7 +196,7 @@ Next priorities:
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Contributors adding scanners should also read [docs/scanner-authoring.md](docs/scanner-authoring.md) for the current scanner contract, registration workflow, permissions, and testing requirements.
 
 ## Security
 
