@@ -2,6 +2,22 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.15] - 2026-09-21
+
+### Added
+
+- Deterministic IAM role trust-policy analysis using `iam:GetRole`.
+- HIGH finding for an unconditional wildcard trust principal paired with an STS assume-role action.
+- Trust-policy evidence including matched statement indexes and assume-role actions.
+- Deterministic risk correlation when the same IAM role has both broad wildcard permissions and broad wildcard trust.
+- Read-only `iam:GetRole` permission and trust-policy documentation.
+- Unit coverage for wildcard trust, conditioned trust, specific service principals, wildcard actions, malformed trust policies, and same-role correlation boundaries.
+
+### Changed
+
+- IAM role findings now cover both what permissions a role receives and who its trust policy broadly delegates role assumption to.
+- Role-trust findings explicitly avoid claiming that a wildcard trust statement alone proves any caller can successfully assume the role.
+
 ## [0.1.0-alpha.14] - 2026-09-20
 
 ### Added

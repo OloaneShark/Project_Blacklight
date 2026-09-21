@@ -15,6 +15,7 @@
         "iam:GetGroupPolicy",
         "iam:GetPolicy",
         "iam:GetPolicyVersion",
+        "iam:GetRole",
         "iam:GetRolePolicy",
         "iam:GetUserPolicy",
         "iam:ListAccessKeys",

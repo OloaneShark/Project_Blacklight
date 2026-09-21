@@ -87,6 +87,7 @@ class IAMScanner:
         findings.extend(role_errors)
         for role_name in roles:
             findings.extend(self._check_identity_policies("role", role_name))
+            findings.append(self._check_role_trust_policy(role_name))
 
         return findings
 
@@ -486,6 +487,116 @@ class IAMScanner:
             )
 
         return findings
+
+    def _check_role_trust_policy(self, role_name: str) -> Finding:
+        """Check whether a role trust policy has an unconditional wildcard principal."""
+
+        check_id = "aws.iam.role_trust_wildcard"
+        try:
+            role = self.iam.get_role(RoleName=role_name).get("Role", {})
+        except ClientError as error:
+            return self._error(role_name, check_id, error)
+
+        policy = self._normalize_policy_document(role.get("AssumeRolePolicyDocument"))
+        if policy is None:
+            return self._finding(
+                role_name,
+                check_id,
+                Severity.ERROR,
+                "Blacklight could not parse the IAM role trust policy",
+                (
+                    f"Blacklight could not normalize the trust policy for IAM role {role_name} "
+                    "into a JSON policy document for deterministic analysis."
+                ),
+                "Review the role trust policy and retry the IAM scanner.",
+                {"identity_type": "role"},
+            )
+
+        statements = policy.get("Statement", [])
+        if isinstance(statements, dict):
+            statements = [statements]
+        if not isinstance(statements, list):
+            return self._finding(
+                role_name,
+                check_id,
+                Severity.ERROR,
+                "Blacklight could not parse the IAM role trust policy",
+                f"The trust policy for IAM role {role_name} does not contain a valid Statement list.",
+                "Review the role trust policy and retry the IAM scanner.",
+                {"identity_type": "role"},
+            )
+
+        matched_indexes: list[int] = []
+        matched_actions: list[str] = []
+        for index, statement in enumerate(statements):
+            if not isinstance(statement, dict):
+                continue
+            if statement.get("Effect") != "Allow":
+                continue
+            if statement.get("Condition"):
+                continue
+            if not self._principal_contains_wildcard(statement.get("Principal")):
+                continue
+
+            actions = self._string_values(statement.get("Action"))
+            assume_actions = [
+                action
+                for action in actions
+                if action == "*" or action.startswith("sts:AssumeRole")
+            ]
+            if assume_actions:
+                matched_indexes.append(index)
+                matched_actions.extend(assume_actions)
+
+        if matched_indexes:
+            return self._finding(
+                role_name,
+                check_id,
+                Severity.HIGH,
+                "IAM role trust policy has an unconditional wildcard principal",
+                (
+                    f"IAM role {role_name} has an Allow trust statement with a wildcard Principal "
+                    "and an STS assume-role action without a Condition. This broadly delegates who "
+                    "may attempt to assume the role, although successful assumption can still depend "
+                    "on other AWS authorization controls."
+                ),
+                (
+                    "Restrict the role trust policy to the specific AWS principals, services, or "
+                    "federated identities that require access, and add appropriate trust conditions."
+                ),
+                {
+                    "identity_type": "role",
+                    "statement_indexes": matched_indexes,
+                    "assume_actions": sorted(set(matched_actions)),
+                    "effective_assumption_not_evaluated": True,
+                },
+            )
+
+        return self._finding(
+            role_name,
+            check_id,
+            Severity.PASS,
+            "No unconditional wildcard principal was found in the role trust policy",
+            (
+                f"Blacklight did not find an unconditional wildcard Principal paired with an STS "
+                f"assume-role action in the trust policy for IAM role {role_name}."
+            ),
+            evidence={"identity_type": "role", "statement_indexes": []},
+        )
+
+    @staticmethod
+    def _principal_contains_wildcard(principal: Any) -> bool:
+        if principal == "*":
+            return True
+        if not isinstance(principal, dict):
+            return False
+
+        for value in principal.values():
+            if value == "*":
+                return True
+            if isinstance(value, list) and "*" in value:
+                return True
+        return False
 
     def _policy_document_error(
         self,
