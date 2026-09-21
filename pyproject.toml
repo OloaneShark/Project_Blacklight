@@ -31,12 +31,19 @@ dev = [
   "pytest>=8,<9",
   "ruff>=0.8,<1",
 ]
+release = [
+  "build>=1.2,<2",
+  "twine>=6,<7",
+]
 
 [project.scripts]
 blacklight = "blacklight_security.cli:main"
 
 [project.urls]
+Homepage = "https://github.com/OloaneShark/Project_Blacklight"
 Repository = "https://github.com/OloaneShark/Project_Blacklight"
+Documentation = "https://github.com/OloaneShark/Project_Blacklight/tree/main/docs"
+Changelog = "https://github.com/OloaneShark/Project_Blacklight/blob/main/CHANGELOG.md"
 Issues = "https://github.com/OloaneShark/Project_Blacklight/issues"
 
 [tool.setuptools.dynamic]

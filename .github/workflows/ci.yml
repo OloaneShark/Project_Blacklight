@@ -29,3 +29,32 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+
+  package:
+    name: package validation
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install release tooling
+        run: python -m pip install ".[release]"
+
+      - name: Build wheel and source distribution
+        run: python -m build
+
+      - name: Validate distribution metadata and README
+        run: python -m twine check dist/*
+
+      - name: Smoke-test built wheel
+        run: |
+          python -m venv /tmp/blacklight-wheel-env
+          /tmp/blacklight-wheel-env/bin/python -m pip install dist/*.whl
+          /tmp/blacklight-wheel-env/bin/blacklight --version

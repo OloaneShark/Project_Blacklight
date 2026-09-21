@@ -14,13 +14,13 @@ The IAM scanner checks root MFA, long-lived access-key age/usage, policies attac
 
 The Lambda scanner checks whether Lambda Function URLs allow unauthenticated public access. The GuardDuty scanner checks whether managed threat detection is enabled in the selected AWS region.
 
-Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score. See [docs/risk-engine.md](docs/risk-engine.md) for the scoring model and current correlation rules.
+Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score. See [docs/risk-engine.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/risk-engine.md) for the scoring model and current correlation rules.
 
-Risk and scan coverage are reported separately. Scanner `ERROR` findings do not add security-risk points, but they reduce confidence that the observed risk score represents the entire selected scan scope. Coverage is reported as `FULL`, `PARTIAL`, `LIMITED`, or `UNKNOWN`, with a corresponding deterministic risk-confidence label. See [docs/coverage-confidence.md](docs/coverage-confidence.md).
+Risk and scan coverage are reported separately. Scanner `ERROR` findings do not add security-risk points, but they reduce confidence that the observed risk score represents the entire selected scan scope. Coverage is reported as `FULL`, `PARTIAL`, `LIMITED`, or `UNKNOWN`, with a corresponding deterministic risk-confidence label. See [docs/coverage-confidence.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/coverage-confidence.md).
 
 ## Install from source
 
-PyPI publishing is planned but is **not live yet**.
+PyPI publishing automation is prepared, but the first public release is **not live yet**. The remaining account-side step is configuring the PyPI Trusted Publisher for this repository and then publishing a matching GitHub Release.
 
 ```bash
 git clone https://github.com/OloaneShark/Project_Blacklight.git
@@ -40,6 +40,16 @@ For development:
 python -m pip install -e ".[dev]"
 ```
 
+For local release-package validation:
+
+```bash
+python -m pip install -e ".[release]"
+python -m build
+python -m twine check dist/*
+```
+
+See [docs/publishing.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/publishing.md) for the Trusted Publishing and release procedure.
+
 ## AWS credentials and least privilege
 
 Blacklight uses the standard boto3/AWS credential chain. Do not hard-code credentials into the project.
@@ -50,7 +60,7 @@ For normal use, prefer a dedicated read-only/least-privilege scanning identity. 
 examples/aws/blacklight-readonly-policy.json
 ```
 
-The policy contains only the AWS API actions currently required by the built-in scanners. See [docs/aws-permissions.md](docs/aws-permissions.md) for the permission breakdown and setup notes.
+The policy contains only the AWS API actions currently required by the built-in scanners. See [docs/aws-permissions.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/aws-permissions.md) for the permission breakdown and setup notes.
 
 Configure a profile for the scanning identity:
 
@@ -187,7 +197,7 @@ The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_fl
 Next priorities:
 
 - Deeper AWS checks and additional AWS services
-- PyPI publishing
+- First PyPI release after Trusted Publisher activation
 - Versioned GitHub releases
 - Standalone executables
 - Docker distribution
@@ -196,12 +206,12 @@ Next priorities:
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Contributors adding scanners should also read [docs/scanner-authoring.md](docs/scanner-authoring.md) for the current scanner contract, registration workflow, permissions, and testing requirements.
+Contributions are welcome. See [CONTRIBUTING.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/CONTRIBUTING.md). Contributors adding scanners should also read [docs/scanner-authoring.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/scanner-authoring.md) for the current scanner contract, registration workflow, permissions, and testing requirements.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) before reporting vulnerabilities or working with credentials.
+See [SECURITY.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/SECURITY.md) before reporting vulnerabilities or working with credentials.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/OloaneShark/Project_Blacklight/blob/main/LICENSE).
