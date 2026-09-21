@@ -130,3 +130,25 @@ def test_s3_public_policy_does_not_use_regional_guardduty_correlation():
         "aws.regional_public_exposure_with_guardduty_gap"
         not in correlation_ids(assessment)
     )
+
+
+def test_broad_iam_role_permissions_and_trust_correlate():
+    findings = [
+        finding("aws.iam.role_wildcard_policy", "iam", "deploy-role", Severity.HIGH),
+        finding("aws.iam.role_trust_wildcard", "iam", "deploy-role", Severity.HIGH),
+    ]
+
+    assessment = assess_risk(findings)
+
+    assert "aws.iam.broad_role_permissions_and_trust" in correlation_ids(assessment)
+
+
+def test_iam_role_trust_does_not_correlate_across_different_roles():
+    findings = [
+        finding("aws.iam.role_wildcard_policy", "iam", "role-a", Severity.HIGH),
+        finding("aws.iam.role_trust_wildcard", "iam", "role-b", Severity.HIGH),
+    ]
+
+    assessment = assess_risk(findings)
+
+    assert "aws.iam.broad_role_permissions_and_trust" not in correlation_ids(assessment)
