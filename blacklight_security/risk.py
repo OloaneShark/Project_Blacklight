@@ -128,6 +128,22 @@ def assess_risk(findings: list[Finding]) -> RiskAssessment:
                 )
             )
 
+        if service == "iam" and {
+            "aws.iam.role_wildcard_policy",
+            "aws.iam.role_trust_wildcard",
+        }.issubset(checks):
+            correlations.append(
+                Correlation(
+                    "aws.iam.broad_role_permissions_and_trust",
+                    20,
+                    (
+                        "The same IAM role has an unconditional wildcard identity-policy grant "
+                        "and an unconditional wildcard trust principal."
+                    ),
+                    (resource_id,),
+                )
+            )
+
     cloudtrail_gaps = [
         finding
         for finding in actionable
