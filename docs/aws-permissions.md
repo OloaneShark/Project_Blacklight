@@ -40,10 +40,11 @@ The policy grants only the API actions currently required by Blacklight's S3, IA
 - `iam:ListAttachedGroupPolicies`
 - `iam:ListRoles`
 - `iam:ListRolePolicies`
+- `iam:GetRole`
 - `iam:GetRolePolicy`
 - `iam:ListAttachedRolePolicies`
 
-The policy-inspection actions let Blacklight read inline and directly attached managed policies for IAM users, groups, and roles. Blacklight currently flags unconditional `Allow` statements that grant both `Action: "*"` and `Resource: "*"`. It does not modify policies or claim to calculate final effective permissions across SCPs, permissions boundaries, session policies, explicit denies, or other IAM evaluation layers.
+The policy-inspection actions let Blacklight read inline and directly attached managed policies for IAM users, groups, and roles. `iam:GetRole` also lets Blacklight inspect each role's trust policy. Blacklight flags unconditional identity-policy `Allow` statements that grant both `Action: "*"` and `Resource: "*"`, plus role trust statements that combine a wildcard principal with an STS assume-role action and no condition. It does not modify policies or claim to calculate final effective permissions or every prerequisite for successful role assumption.
 
 ### AWS CloudTrail
 
