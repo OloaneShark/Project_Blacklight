@@ -10,7 +10,7 @@ Blacklight reveals security weaknesses that are easy to miss in normal cloud con
 
 Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, and Amazon GuardDuty. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
-The IAM scanner checks root MFA, long-lived access-key age/usage, and policies attached directly to IAM users, groups, and roles for unconditional wildcard `Allow` statements that grant both `Action: "*"` and `Resource: "*"`. These policy checks report the broad identity-policy grant itself; they do not claim to calculate final effective permissions across permissions boundaries, SCPs, session policies, explicit denies, or other IAM evaluation layers.
+The IAM scanner checks root MFA, long-lived access-key age/usage, policies attached directly to IAM users, groups, and roles, and IAM role trust policies. It flags unconditional identity-policy `Allow` statements that grant both `Action: "*"` and `Resource: "*"`, plus role trust statements with a wildcard principal and STS assume-role action but no condition. These checks report directly observed policy evidence; they do not claim to calculate final effective permissions or every prerequisite for successful role assumption.
 
 The Lambda scanner checks whether Lambda Function URLs allow unauthenticated public access. The GuardDuty scanner checks whether managed threat detection is enabled in the selected AWS region.
 
