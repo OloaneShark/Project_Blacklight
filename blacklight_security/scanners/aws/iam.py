@@ -325,9 +325,9 @@ class IAMScanner:
             inline_names = []
             had_errors = True
 
-        get_inline = getattr(self.iam, api["get_inline"])
         for policy_name in inline_names:
             try:
+                get_inline = getattr(self.iam, api["get_inline"])
                 response = get_inline(
                     **{
                         identity_arg: identity_name,
