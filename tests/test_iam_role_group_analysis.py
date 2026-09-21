@@ -84,6 +84,25 @@ class RoleGroupIAM:
             )
         raise AssertionError(name)
 
+
+    def get_role(self, RoleName):
+        assert RoleName == "deployment-role"
+        return {
+            "Role": {
+                "RoleName": RoleName,
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"Service": "ec2.amazonaws.com"},
+                            "Action": "sts:AssumeRole",
+                        }
+                    ],
+                },
+            }
+        }
+
     def get_group_policy(self, GroupName, PolicyName):
         assert GroupName == "admins"
         assert PolicyName == "GroupInline"
