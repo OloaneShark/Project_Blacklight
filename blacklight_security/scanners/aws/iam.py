@@ -10,8 +10,30 @@ from botocore.exceptions import ClientError
 from blacklight_security.models import Finding, Severity
 
 
+_POLICY_APIS = {
+    "user": {
+        "list_inline": "list_user_policies",
+        "get_inline": "get_user_policy",
+        "list_attached": "list_attached_user_policies",
+        "identity_arg": "UserName",
+    },
+    "group": {
+        "list_inline": "list_group_policies",
+        "get_inline": "get_group_policy",
+        "list_attached": "list_attached_group_policies",
+        "identity_arg": "GroupName",
+    },
+    "role": {
+        "list_inline": "list_role_policies",
+        "get_inline": "get_role_policy",
+        "list_attached": "list_attached_role_policies",
+        "identity_arg": "RoleName",
+    },
+}
+
+
 class IAMScanner:
-    """Deterministic AWS IAM account, credential, and direct user-policy checks."""
+    """Deterministic AWS IAM account, credential, and identity-policy checks."""
 
     def __init__(self, session: Any, stale_days: int = 90):
         self.iam = session.client("iam")
@@ -20,14 +42,15 @@ class IAMScanner:
     def scan(self) -> list[Finding]:
         findings = [self._check_root_mfa()]
 
-        try:
-            user_pages = self.iam.get_paginator("list_users").paginate()
-            users = [user for page in user_pages for user in page.get("Users", [])]
-        except ClientError as error:
-            findings.append(self._error("aws-account", "aws.iam.list_users", error))
-            return findings
+        users, user_errors = self._list_identity_names(
+            paginator_name="list_users",
+            collection_key="Users",
+            name_key="UserName",
+            check_id="aws.iam.list_users",
+        )
+        findings.extend(user_errors)
 
-        if not users:
+        if not users and not user_errors:
             findings.append(
                 self._finding(
                     resource_id="aws-account",
@@ -40,14 +63,51 @@ class IAMScanner:
                     ),
                 )
             )
-            return findings
 
-        for user in users:
-            username = user["UserName"]
+        for username in users:
             findings.extend(self._check_user_access_keys(username))
-            findings.extend(self._check_user_policies(username))
+            findings.extend(self._check_identity_policies("user", username))
+
+        groups, group_errors = self._list_identity_names(
+            paginator_name="list_groups",
+            collection_key="Groups",
+            name_key="GroupName",
+            check_id="aws.iam.list_groups",
+        )
+        findings.extend(group_errors)
+        for group_name in groups:
+            findings.extend(self._check_identity_policies("group", group_name))
+
+        roles, role_errors = self._list_identity_names(
+            paginator_name="list_roles",
+            collection_key="Roles",
+            name_key="RoleName",
+            check_id="aws.iam.list_roles",
+        )
+        findings.extend(role_errors)
+        for role_name in roles:
+            findings.extend(self._check_identity_policies("role", role_name))
 
         return findings
+
+    def _list_identity_names(
+        self,
+        paginator_name: str,
+        collection_key: str,
+        name_key: str,
+        check_id: str,
+    ) -> tuple[list[str], list[Finding]]:
+        try:
+            pages = self.iam.get_paginator(paginator_name).paginate()
+            names = [
+                item[name_key]
+                for page in pages
+                for item in page.get(collection_key, [])
+                if item.get(name_key)
+            ]
+            return names, []
+        except ClientError as error:
+            return [], [self._error("aws-account", check_id, error)]
 
     def _finding(
         self,
@@ -230,41 +290,52 @@ class IAMScanner:
 
         return findings
 
-    def _check_user_policies(self, username: str) -> list[Finding]:
-        """Inspect policies attached directly to one IAM user.
+    def _check_identity_policies(
+        self,
+        identity_type: str,
+        identity_name: str,
+    ) -> list[Finding]:
+        """Inspect policies attached directly to one IAM user, group, or role.
 
-        This deliberately reports the policy statement that exists, not the
-        identity's final effective permissions. Permissions boundaries, SCPs,
-        explicit denies, and other IAM evaluation layers may further restrict
-        what the user can actually do.
+        This reports the broad identity-policy statement that exists, not final
+        effective permissions. Permissions boundaries, SCPs, explicit denies,
+        session policies, and other IAM evaluation layers may further restrict
+        what the principal can actually do.
         """
 
-        check_id = "aws.iam.user_wildcard_policy"
-        error_check_id = "aws.iam.user_policy_analysis"
+        api = _POLICY_APIS[identity_type]
+        check_id = f"aws.iam.{identity_type}_wildcard_policy"
+        error_check_id = f"aws.iam.{identity_type}_policy_analysis"
+        identity_arg = api["identity_arg"]
         findings: list[Finding] = []
         matches: list[dict[str, Any]] = []
         had_errors = False
 
         try:
-            pages = self.iam.get_paginator("list_user_policies").paginate(UserName=username)
+            pages = self.iam.get_paginator(api["list_inline"]).paginate(
+                **{identity_arg: identity_name}
+            )
             inline_names = [
                 name
                 for page in pages
                 for name in page.get("PolicyNames", [])
             ]
         except ClientError as error:
-            findings.append(self._error(username, error_check_id, error))
+            findings.append(self._error(identity_name, error_check_id, error))
             inline_names = []
             had_errors = True
 
+        get_inline = getattr(self.iam, api["get_inline"])
         for policy_name in inline_names:
             try:
-                response = self.iam.get_user_policy(
-                    UserName=username,
-                    PolicyName=policy_name,
+                response = get_inline(
+                    **{
+                        identity_arg: identity_name,
+                        "PolicyName": policy_name,
+                    }
                 )
             except ClientError as error:
-                findings.append(self._error(username, error_check_id, error))
+                findings.append(self._error(identity_name, error_check_id, error))
                 had_errors = True
                 continue
 
@@ -272,7 +343,14 @@ class IAMScanner:
                 response.get("PolicyDocument")
             )
             if statement_indexes is None:
-                findings.append(self._policy_document_error(username, policy_name, "inline"))
+                findings.append(
+                    self._policy_document_error(
+                        identity_type,
+                        identity_name,
+                        policy_name,
+                        "inline",
+                    )
+                )
                 had_errors = True
                 continue
             if statement_indexes:
@@ -286,8 +364,8 @@ class IAMScanner:
                 )
 
         try:
-            pages = self.iam.get_paginator("list_attached_user_policies").paginate(
-                UserName=username
+            pages = self.iam.get_paginator(api["list_attached"]).paginate(
+                **{identity_arg: identity_name}
             )
             attached_policies = [
                 policy
@@ -295,7 +373,7 @@ class IAMScanner:
                 for policy in page.get("AttachedPolicies", [])
             ]
         except ClientError as error:
-            findings.append(self._error(username, error_check_id, error))
+            findings.append(self._error(identity_name, error_check_id, error))
             attached_policies = []
             had_errors = True
 
@@ -304,7 +382,12 @@ class IAMScanner:
             policy_name = policy.get("PolicyName") or policy_arn or "unknown-policy"
             if not policy_arn:
                 findings.append(
-                    self._policy_document_error(username, str(policy_name), "managed")
+                    self._policy_document_error(
+                        identity_type,
+                        identity_name,
+                        str(policy_name),
+                        "managed",
+                    )
                 )
                 had_errors = True
                 continue
@@ -314,7 +397,12 @@ class IAMScanner:
                 version_id = policy_metadata.get("DefaultVersionId")
                 if not version_id:
                     findings.append(
-                        self._policy_document_error(username, str(policy_name), "managed")
+                        self._policy_document_error(
+                            identity_type,
+                            identity_name,
+                            str(policy_name),
+                            "managed",
+                        )
                     )
                     had_errors = True
                     continue
@@ -323,14 +411,19 @@ class IAMScanner:
                     VersionId=version_id,
                 ).get("PolicyVersion", {})
             except ClientError as error:
-                findings.append(self._error(username, error_check_id, error))
+                findings.append(self._error(identity_name, error_check_id, error))
                 had_errors = True
                 continue
 
             statement_indexes = self._unrestricted_statement_indexes(version.get("Document"))
             if statement_indexes is None:
                 findings.append(
-                    self._policy_document_error(username, str(policy_name), "managed")
+                    self._policy_document_error(
+                        identity_type,
+                        identity_name,
+                        str(policy_name),
+                        "managed",
+                    )
                 )
                 had_errors = True
                 continue
@@ -344,24 +437,26 @@ class IAMScanner:
                     }
                 )
 
+        identity_label = identity_type.replace("_", " ")
         if matches:
             findings.append(
                 self._finding(
-                    username,
+                    identity_name,
                     check_id,
                     Severity.HIGH,
-                    "IAM user has an unconditional wildcard Allow statement",
+                    f"IAM {identity_label} has an unconditional wildcard Allow statement",
                     (
-                        f"One or more policies attached directly to {username} allow Action '*' "
-                        "on Resource '*' without a Condition. This is an administrator-style "
-                        "identity-policy grant, although effective permissions can still be "
-                        "restricted by other IAM evaluation layers."
+                        f"One or more policies attached to IAM {identity_label} {identity_name} "
+                        "allow Action '*' on Resource '*' without a Condition. This is an "
+                        "administrator-style identity-policy grant, although effective permissions "
+                        "can still be restricted by other IAM evaluation layers."
                     ),
                     (
                         "Replace broad wildcard permissions with the specific actions and resources "
-                        "the user requires. Prefer roles and short-lived credentials where practical."
+                        f"the {identity_label} requires."
                     ),
                     {
+                        "identity_type": identity_type,
                         "matched_policy_count": len(matches),
                         "matched_policies": matches,
                         "effective_permissions_not_evaluated": True,
@@ -371,16 +466,22 @@ class IAMScanner:
         elif not had_errors:
             findings.append(
                 self._finding(
-                    username,
+                    identity_name,
                     check_id,
                     Severity.PASS,
-                    "No unconditional wildcard Allow was found in direct user policies",
+                    (
+                        "No unconditional wildcard Allow was found in directly attached "
+                        f"{identity_label} policies"
+                    ),
                     (
                         "Blacklight did not find an unconditioned Action '*' and Resource '*' "
-                        "Allow statement in the inline or managed policies attached directly to "
-                        f"{username}."
+                        f"Allow statement in the inline or managed policies attached to "
+                        f"{identity_label} {identity_name}."
                     ),
-                    evidence={"matched_policy_count": 0},
+                    evidence={
+                        "identity_type": identity_type,
+                        "matched_policy_count": 0,
+                    },
                 )
             )
 
@@ -388,21 +489,28 @@ class IAMScanner:
 
     def _policy_document_error(
         self,
-        username: str,
+        identity_type: str,
+        identity_name: str,
         policy_name: str,
         policy_type: str,
     ) -> Finding:
+        identity_label = identity_type.replace("_", " ")
         return self._finding(
-            username,
-            "aws.iam.user_policy_analysis",
+            identity_name,
+            f"aws.iam.{identity_type}_policy_analysis",
             Severity.ERROR,
-            "Blacklight could not parse an IAM user policy document",
+            f"Blacklight could not parse an IAM {identity_label} policy document",
             (
-                f"Blacklight could not normalize the {policy_type} policy {policy_name} into a "
-                "JSON policy document for deterministic analysis."
+                f"Blacklight could not normalize the {policy_type} policy {policy_name} attached "
+                f"to IAM {identity_label} {identity_name} into a JSON policy document for "
+                "deterministic analysis."
             ),
             "Review the policy document and retry the IAM scanner.",
-            {"policy_name": policy_name, "policy_type": policy_type},
+            {
+                "identity_type": identity_type,
+                "policy_name": policy_name,
+                "policy_type": policy_type,
+            },
         )
 
     @staticmethod
