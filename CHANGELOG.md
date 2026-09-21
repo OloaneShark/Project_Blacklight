@@ -2,6 +2,23 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.14] - 2026-09-20
+
+### Added
+
+- Deterministic IAM group-policy analysis for inline and directly attached managed policies.
+- Deterministic IAM role-policy analysis for inline and directly attached managed policies.
+- HIGH findings for IAM groups or roles with unconditional `Allow` statements containing both `Action: "*"` and `Resource: "*"`.
+- Identity-type evidence so reports distinguish user, group, and role policy findings.
+- Read-only IAM permissions required to list groups, roles, and their attached policy documents.
+- Unit coverage for wildcard group policies, wildcard role policies, conditioned/narrow policies, policy parse failures, and accounts with no IAM users.
+
+### Changed
+
+- IAM policy analysis now uses one shared deterministic path for users, groups, and roles.
+- An AWS account with no IAM users no longer causes the IAM scanner to return before group and role analysis.
+- Effective-permission caveats now explicitly include session policies in addition to permissions boundaries, SCPs, and explicit denies.
+
 ## [0.1.0-alpha.13] - 2026-09-19
 
 ### Added
