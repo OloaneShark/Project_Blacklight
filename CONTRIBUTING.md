@@ -53,6 +53,8 @@ A scanner should:
 
 AI-assisted analysis may be added later, but AI output must not replace deterministic security detection.
 
+For the exact built-in scanner contract, registration steps, check-ID conventions, error handling, permission updates, and test checklist, see [docs/scanner-authoring.md](docs/scanner-authoring.md).
+
 ## Pull requests
 
 Keep pull requests focused. Add or update tests for behavior changes, and explain any security assumptions that affect severity or false-positive risk. GitHub will provide a pull-request checklist automatically.
