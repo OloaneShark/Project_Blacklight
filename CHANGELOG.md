@@ -2,6 +2,20 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.16] - 2026-09-21
+
+### Added
+
+- Contributor-facing scanner authoring and registration guide.
+- Documented scanner contract, stable check-ID conventions, severity semantics, error/coverage behavior, AWS registration steps, permission updates, regional-scope guidance, correlation requirements, and test expectations.
+- Scanner pull-request checklist covering deterministic evidence, least privilege, registry updates, documentation, Ruff, and pytest.
+
+### Changed
+
+- CONTRIBUTING now links directly to the detailed scanner-authoring guide.
+- README contribution guidance now points scanner contributors to the current registration workflow.
+- Roadmap no longer lists scanner-registration documentation as unfinished work.
+
 ## [0.1.0-alpha.15] - 2026-09-21
 
 ### Added
