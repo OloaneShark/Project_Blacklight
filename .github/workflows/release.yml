@@ -30,13 +30,16 @@ jobs:
             exit 1
           fi
 
-      - name: Download GitHub Release distributions
+      - name: Download GitHub Release Python distributions
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p dist
-          gh release download "$GITHUB_REF_NAME"             --pattern "*.whl"             --pattern "*.tar.gz"             --dir dist
+          gh release download "$GITHUB_REF_NAME" \
+            --pattern "project_blacklight_security-*.whl" \
+            --pattern "project_blacklight_security-*.tar.gz" \
+            --dir dist
 
       - name: Verify expected versioned artifacts are present
         shell: bash
