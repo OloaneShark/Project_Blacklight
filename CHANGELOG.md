@@ -2,6 +2,22 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.18] - 2026-09-22
+
+### Added
+
+- Tag-driven GitHub Release preparation workflow for version tags matching `v<package-version>`.
+- Release guards requiring the tagged commit to be contained in `main`, the tag to match `blacklight_security.__version__`, and the changelog to contain the matching release entry.
+- Draft GitHub Releases with generated notes, wheel/source-distribution assets, prerelease marking for alpha/beta/RC versions, and `SHA256SUMS`.
+- Safe rerun behavior that refreshes draft assets but refuses to overwrite an already published release.
+- Dedicated versioned release documentation.
+
+### Changed
+
+- PyPI publishing now downloads and validates the exact wheel and source archive attached to the reviewed GitHub Release instead of rebuilding new distributions after publication.
+- Versioned GitHub Release creation and PyPI publication are separated by a human review/publish step.
+- Roadmap no longer lists versioned GitHub releases as unfinished work.
+
 ## [0.1.0-alpha.17] - 2026-09-21
 
 ### Added
