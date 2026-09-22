@@ -35,6 +35,9 @@ release = [
   "build>=1.2,<2",
   "twine>=6,<7",
 ]
+standalone = [
+  "pyinstaller>=6.15,<7",
+]
 
 [project.scripts]
 blacklight = "blacklight_security.cli:main"
