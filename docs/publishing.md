@@ -116,12 +116,13 @@ The PyPI workflow:
 
 1. checks out the exact published release ref
 2. verifies the release tag matches `blacklight_security.__version__`
-3. downloads the wheel and source distribution attached to the GitHub Release
-4. verifies the expected versioned artifact names
-5. runs `twine check` against those reviewed artifacts
-6. passes the validated distributions to the isolated publish job
-7. requests a short-lived PyPI credential through GitHub OIDC
-8. publishes through `pypa/gh-action-pypi-publish`
+3. downloads only the Python wheel and source distribution attached to the GitHub Release
+4. ignores standalone Windows/Linux/macOS archives by using the `project_blacklight_security-` filename prefix
+5. verifies the expected versioned artifact names
+6. runs `twine check` against those reviewed Python artifacts
+7. passes the validated distributions to the isolated publish job
+8. requests a short-lived PyPI credential through GitHub OIDC
+9. publishes through `pypa/gh-action-pypi-publish`
 
 Only the PyPI publish job receives `id-token: write`.
 
