@@ -50,6 +50,12 @@ python -m twine check dist/*
 
 See [docs/releases.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/releases.md) for versioned GitHub Releases and [docs/publishing.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/publishing.md) for the PyPI Trusted Publishing procedure.
 
+## Standalone executables
+
+Versioned GitHub Releases build and smoke-test self-contained Blacklight executables for Windows, Linux, and macOS. These archives do not require a Python installation on the target machine.
+
+See [docs/standalone.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/standalone.md) for local build commands, release artifact names, checksum verification, and the current code-signing limitations.
+
 ## AWS credentials and least privilege
 
 Blacklight uses the standard boto3/AWS credential chain. Do not hard-code credentials into the project.
@@ -198,7 +204,6 @@ Next priorities:
 
 - Deeper AWS checks and additional AWS services
 - First PyPI release after Trusted Publisher activation
-- Standalone executables
 - Docker distribution
 - Docker and Kubernetes security scanners
 - Optional pluggable AI analyst integrations
