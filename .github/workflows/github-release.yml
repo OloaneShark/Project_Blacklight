@@ -15,19 +15,47 @@ jobs:
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Verify tag matches package version
+      - name: Verify tag, version, changelog, and main ancestry
         shell: bash
         run: |
+          git fetch origin main
+
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Release tag $GITHUB_REF_NAME does not point to a commit contained in main."
+            exit 1
+          fi
+
           PACKAGE_VERSION="$(python -c 'from blacklight_security import __version__; print(__version__)')"
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
             echo "Tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION."
+            exit 1
+          fi
+
+          CHANGELOG_VERSION="$(python - <<'PY'
+          import re
+          from blacklight_security import __version__
+
+          match = re.fullmatch(r"(\d+\.\d+\.\d+)(a|b|rc)(\d+)", __version__)
+          if not match:
+              print(__version__)
+          else:
+              base, stage, number = match.groups()
+              label = {"a": "alpha", "b": "beta", "rc": "rc"}[stage]
+              print(f"{base}-{label}.{number}")
+          PY
+          )"
+
+          if ! grep -Fq "## [$CHANGELOG_VERSION]" CHANGELOG.md; then
+            echo "CHANGELOG.md does not contain ## [$CHANGELOG_VERSION]."
             exit 1
           fi
 
@@ -47,6 +75,12 @@ jobs:
           /tmp/blacklight-release-wheel/bin/python -m pip install dist/*.whl
           /tmp/blacklight-release-wheel/bin/blacklight --version
 
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: |
+          cd dist
+          sha256sum *.whl *.tar.gz > SHA256SUMS
+
       - name: Create or refresh draft GitHub Release
         shell: bash
         env:
@@ -62,12 +96,12 @@ jobs:
               exit 1
             fi
 
-            gh release upload "$GITHUB_REF_NAME" dist/*.whl dist/*.tar.gz --clobber
+            gh release upload "$GITHUB_REF_NAME"               dist/*.whl               dist/*.tar.gz               dist/SHA256SUMS               --clobber
           else
             EXTRA_FLAGS=()
             if [[ "$PACKAGE_VERSION" =~ (a|b|rc)[0-9]+$ ]]; then
               EXTRA_FLAGS+=(--prerelease)
             fi
 
-            gh release create "$GITHUB_REF_NAME"               dist/*.whl               dist/*.tar.gz               --draft               --generate-notes               --title "$TITLE"               "${EXTRA_FLAGS[@]}"
+            gh release create "$GITHUB_REF_NAME"               dist/*.whl               dist/*.tar.gz               dist/SHA256SUMS               --draft               --generate-notes               --title "$TITLE"               "${EXTRA_FLAGS[@]}"
           fi
