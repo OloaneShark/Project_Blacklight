@@ -2,6 +2,25 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.19] - 2026-09-22
+
+### Added
+
+- Cross-platform PyInstaller build script for self-contained Blacklight command-line executables.
+- Standalone archives for Windows, Linux, and macOS containing the frozen executable, license, and standalone usage notes.
+- Frozen-binary version smoke test that must match `blacklight_security.__version__`.
+- Dedicated standalone CI matrix for Ubuntu, Windows, and macOS.
+- Versioned release integration that builds standalone archives on all three operating systems and attaches them to the draft GitHub Release.
+- Release-wide SHA-256 checksums covering Python distributions and standalone archives.
+- Standalone executable documentation including build commands, AWS credential behavior, artifact layout, and current unsigned-binary limitations.
+- `standalone` optional dependency group with PyInstaller.
+
+### Changed
+
+- The versioned release workflow now separates validation, Python distribution builds, standalone builds, and final release preparation into dependent jobs.
+- PyPI release downloads are restricted to the `project_blacklight_security-` filename prefix so standalone `.tar.gz` archives cannot be mistaken for Python source distributions.
+- Roadmap no longer lists standalone executables as unfinished work.
+
 ## [0.1.0-alpha.18] - 2026-09-22
 
 ### Added
