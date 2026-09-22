@@ -8,3 +8,4 @@ users.db
 reports/build/
 dist/
 *.egg-info/
+standalone-dist/

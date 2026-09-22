@@ -52,15 +52,18 @@ The workflow rejects the tag if:
 
 ## Draft release artifacts
 
-The draft GitHub Release contains:
+The draft GitHub Release contains the Python distributions plus platform standalone archives:
 
 ```text
 project_blacklight_security-<version>-py3-none-any.whl
 project_blacklight_security-<version>.tar.gz
+project-blacklight-<version>-windows-<arch>.zip
+project-blacklight-<version>-linux-<arch>.tar.gz
+project-blacklight-<version>-macos-<arch>.tar.gz
 SHA256SUMS
 ```
 
-The checksum file is generated from the exact wheel and source archive attached to the release.
+The checksum file is generated from every artifact attached to the release. The standalone archives are built and smoke-tested on the operating system they target.
 
 For alpha, beta, and release-candidate versions, the workflow marks the GitHub Release as a prerelease.
 
@@ -90,8 +93,9 @@ The GitHub release preparation workflow and PyPI publishing workflow are deliber
 tag push
   -> validate version/main/changelog
   -> build wheel + sdist
+  -> build Windows/Linux/macOS standalone archives
   -> twine check
-  -> smoke-test wheel
+  -> smoke-test wheel and frozen executables
   -> generate SHA256SUMS
   -> create draft GitHub Release
 ```

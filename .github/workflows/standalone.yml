@@ -1,0 +1,54 @@
+name: Standalone Executable CI
+
+on:
+  pull_request:
+    paths:
+      - "blacklight_security/**"
+      - "tools/**"
+      - "pyproject.toml"
+      - ".github/workflows/standalone.yml"
+      - ".github/workflows/github-release.yml"
+  push:
+    branches: [main]
+    paths:
+      - "blacklight_security/**"
+      - "tools/**"
+      - "pyproject.toml"
+      - ".github/workflows/standalone.yml"
+      - ".github/workflows/github-release.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: standalone (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Blacklight and standalone tooling
+        run: python -m pip install -e ".[standalone]"
+
+      - name: Build and smoke-test standalone executable
+        id: build
+        run: python tools/build_standalone.py
+
+      - name: Upload standalone archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-${{ runner.os }}-${{ runner.arch }}
+          path: standalone-dist/*
+          if-no-files-found: error
