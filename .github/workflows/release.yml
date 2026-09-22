@@ -5,14 +5,14 @@ on:
     types: [published]
 
 jobs:
-  build:
-    name: build release distributions
+  prepare:
+    name: validate published release artifacts
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Check out repository
+      - name: Check out released source
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -30,16 +30,34 @@ jobs:
             exit 1
           fi
 
-      - name: Install release tooling
-        run: python -m pip install ".[release]"
+      - name: Download GitHub Release distributions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          gh release download "$GITHUB_REF_NAME"             --pattern "*.whl"             --pattern "*.tar.gz"             --dir dist
 
-      - name: Build wheel and source distribution
-        run: python -m build
+      - name: Verify expected versioned artifacts are present
+        shell: bash
+        run: |
+          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
+          WHEEL_COUNT="$(find dist -maxdepth 1 -type f -name "project_blacklight_security-${RELEASE_VERSION}-*.whl" | wc -l)"
+          SDIST_COUNT="$(find dist -maxdepth 1 -type f -name "project_blacklight_security-${RELEASE_VERSION}.tar.gz" | wc -l)"
 
-      - name: Validate distribution metadata and README
+          if [ "$WHEEL_COUNT" -ne 1 ] || [ "$SDIST_COUNT" -ne 1 ]; then
+            echo "Expected exactly one wheel and one source distribution for version $RELEASE_VERSION."
+            find dist -maxdepth 1 -type f -print
+            exit 1
+          fi
+
+      - name: Install release validation tooling
+        run: python -m pip install "twine>=6,<7"
+
+      - name: Validate release distributions
         run: python -m twine check dist/*
 
-      - name: Upload release distributions
+      - name: Upload validated distributions for publish job
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
@@ -48,7 +66,7 @@ jobs:
 
   publish:
     name: publish distributions to PyPI
-    needs: build
+    needs: prepare
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -59,7 +77,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download release distributions
+      - name: Download validated release distributions
         uses: actions/download-artifact@v4
         with:
           name: python-package-distributions

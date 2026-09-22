@@ -93,26 +93,39 @@ The normal CI workflow performs these package checks automatically and smoke-tes
 
 ## Publishing flow
 
-The dedicated workflow is:
+GitHub Release preparation and PyPI publishing are intentionally separated.
+
+Push the exact version tag after the release changes are merged into `main`:
+
+```bash
+git tag v0.1.0a18
+git push origin v0.1.0a18
+```
+
+`.github/workflows/github-release.yml` validates the tag, confirms the tagged commit is contained in `main`, checks the changelog, builds and validates the wheel/source distribution, smoke-tests the wheel, creates SHA-256 checksums, and prepares a **draft** GitHub Release with those artifacts attached.
+
+Review that draft and manually click **Publish release**.
+
+That human publish action triggers:
 
 ```text
 .github/workflows/release.yml
 ```
 
-It runs when a GitHub Release is published.
+The PyPI workflow:
 
-The workflow:
-
-1. checks out the exact release ref
+1. checks out the exact published release ref
 2. verifies the release tag matches `blacklight_security.__version__`
-3. builds the wheel and source distribution
-4. runs `twine check`
-5. uploads the distributions as a workflow artifact
-6. downloads that artifact in the isolated publish job
+3. downloads the wheel and source distribution attached to the GitHub Release
+4. verifies the expected versioned artifact names
+5. runs `twine check` against those reviewed artifacts
+6. passes the validated distributions to the isolated publish job
 7. requests a short-lived PyPI credential through GitHub OIDC
 8. publishes through `pypa/gh-action-pypi-publish`
 
-Only the publish job receives `id-token: write`.
+Only the PyPI publish job receives `id-token: write`.
+
+See [docs/releases.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/releases.md) for the complete versioned GitHub Release process.
 
 ## After the first successful publish
 
