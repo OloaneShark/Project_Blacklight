@@ -48,7 +48,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-See [docs/publishing.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/publishing.md) for the Trusted Publishing and release procedure.
+See [docs/releases.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/releases.md) for versioned GitHub Releases and [docs/publishing.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/publishing.md) for the PyPI Trusted Publishing procedure.
 
 ## AWS credentials and least privilege
 
@@ -198,7 +198,6 @@ Next priorities:
 
 - Deeper AWS checks and additional AWS services
 - First PyPI release after Trusted Publisher activation
-- Versioned GitHub releases
 - Standalone executables
 - Docker distribution
 - Docker and Kubernetes security scanners
