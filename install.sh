@@ -29,14 +29,36 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT HUP INT TERM
 
 RELEASES="$TMP_DIR/releases.json"
-curl -fsSL   -H "Accept: application/vnd.github+json"   -H "X-GitHub-Api-Version: 2022-11-28"   "$API" > "$RELEASES"
+ASSETS="$TMP_DIR/assets.json"
+
+curl -fsSL \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "$API" > "$RELEASES"
+
+ASSETS_URL="$(
+  grep -m 1 -o '"assets_url":[[:space:]]*"[^"]*"' "$RELEASES" \
+    | sed 's/^.*"\(https:[^"]*\)"$/\1/'
+)"
+[ -n "$ASSETS_URL" ] || fail "no published GitHub Release was found."
+
+curl -fsSL \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "$ASSETS_URL" > "$ASSETS"
 
 ASSET_URL="$(
-  grep -o '"browser_download_url":[[:space:]]*"[^"]*"' "$RELEASES"     | sed 's/^.*"\(https:[^"]*\)"$/\1/'     | grep "/$ASSET$"     | head -n 1
+  grep -o '"browser_download_url":[[:space:]]*"[^"]*"' "$ASSETS" \
+    | sed 's/^.*"\(https:[^"]*\)"$/\1/' \
+    | grep "/$ASSET$" \
+    | head -n 1
 )"
 
 CHECKSUM_URL="$(
-  grep -o '"browser_download_url":[[:space:]]*"[^"]*"' "$RELEASES"     | sed 's/^.*"\(https:[^"]*\)"$/\1/'     | grep '/SHA256SUMS$'     | head -n 1
+  grep -o '"browser_download_url":[[:space:]]*"[^"]*"' "$ASSETS" \
+    | sed 's/^.*"\(https:[^"]*\)"$/\1/' \
+    | grep '/SHA256SUMS$' \
+    | head -n 1
 )"
 
 [ -n "$ASSET_URL" ] || fail "no published $PLATFORM $ARCH standalone asset was found."
