@@ -13,13 +13,34 @@ from blacklight_security.html_reporting import render_html
 from blacklight_security.policy import evaluate_policy
 from blacklight_security.registry import scanner_names
 from blacklight_security.reporting import render_console, render_json
-from blacklight_security.runner import ScanRunner
+from blacklight_security.runner import ScanResult, ScanRunner
+from blacklight_security.scanners.docker import DockerScanTarget
+
+
+def _add_report_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--format",
+        choices=["console", "json", "html"],
+        default="console",
+        dest="output_format",
+    )
+    parser.add_argument("--output", type=Path, help="Write the rendered report to a file")
+    parser.add_argument(
+        "--fail-on",
+        choices=["low", "medium", "high", "critical"],
+        help="Exit with code 1 when a finding at or above this severity is detected",
+    )
+    parser.add_argument(
+        "--require-full-coverage",
+        action="store_true",
+        help="Exit with code 2 unless every selected scanner completes without ERROR findings",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="blacklight",
-        description="Project Blacklight cloud security scanner",
+        description="Project Blacklight deterministic security scanner",
     )
     parser.add_argument(
         "--version",
@@ -40,46 +61,38 @@ def build_parser() -> argparse.ArgumentParser:
     )
     aws.add_argument("--profile", help="AWS shared-credentials profile name")
     aws.add_argument("--region", help="AWS region override")
-    aws.add_argument(
-        "--format",
-        choices=["console", "json", "html"],
-        default="console",
-        dest="output_format",
+    _add_report_options(aws)
+
+    docker = providers.add_parser("docker", help="Scan local Docker build configuration")
+    docker.add_argument(
+        "--service",
+        choices=["all", *scanner_names("docker")],
+        default="all",
+        help="Docker scanner to run (default: all)",
     )
-    aws.add_argument("--output", type=Path, help="Write the rendered report to a file")
-    aws.add_argument(
-        "--fail-on",
-        choices=["low", "medium", "high", "critical"],
-        help="Exit with code 1 when a finding at or above this severity is detected",
+    docker.add_argument(
+        "--path",
+        type=Path,
+        default=Path("."),
+        help="Dockerfile or project directory to scan (default: current directory)",
     )
-    aws.add_argument(
-        "--require-full-coverage",
-        action="store_true",
-        help="Exit with code 2 unless every selected scanner completes without ERROR findings",
-    )
+    _add_report_options(docker)
 
     return parser
 
 
-def _run_aws(args: argparse.Namespace) -> int:
+def _validate_output_args(args: argparse.Namespace) -> bool:
     if args.output_format == "html" and not args.output:
         print(
             "Blacklight HTML reports require --output, for example: "
             "--format html --output reports/blacklight-report.html",
             file=sys.stderr,
         )
-        return 2
+        return False
+    return True
 
-    try:
-        session = boto3.Session(profile_name=args.profile, region_name=args.region)
-        result = ScanRunner("aws", session).run(args.service)
-    except (NoCredentialsError, ProfileNotFound) as error:
-        print(f"Blacklight could not load AWS credentials: {error}", file=sys.stderr)
-        return 2
-    except (BotoCoreError, ClientError) as error:
-        print(f"Blacklight could not complete the AWS scan: {error}", file=sys.stderr)
-        return 2
 
+def _finish_scan(args: argparse.Namespace, result: ScanResult) -> int:
     policy = evaluate_policy(result.findings, args.fail_on)
     coverage_gate = evaluate_coverage_gate(result.coverage, args.require_full_coverage)
 
@@ -97,10 +110,10 @@ def _run_aws(args: argparse.Namespace) -> int:
     else:
         print(rendered)
 
-    if getattr(result, "status", None) == "FAILED":
+    if result.status == "FAILED":
         print(
             "Blacklight scan coverage failed: every selected scanner returned one or more "
-            "inspection errors. Review the report and scanning permissions before treating the "
+            "inspection errors. Review the report and scan configuration before treating the "
             "risk score as a complete assessment.",
             file=sys.stderr,
         )
@@ -126,12 +139,40 @@ def _run_aws(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_aws(args: argparse.Namespace) -> int:
+    if not _validate_output_args(args):
+        return 2
+
+    try:
+        session = boto3.Session(profile_name=args.profile, region_name=args.region)
+        result = ScanRunner("aws", session).run(args.service)
+    except (NoCredentialsError, ProfileNotFound) as error:
+        print(f"Blacklight could not load AWS credentials: {error}", file=sys.stderr)
+        return 2
+    except (BotoCoreError, ClientError) as error:
+        print(f"Blacklight could not complete the AWS scan: {error}", file=sys.stderr)
+        return 2
+
+    return _finish_scan(args, result)
+
+
+def _run_docker(args: argparse.Namespace) -> int:
+    if not _validate_output_args(args):
+        return 2
+
+    target = DockerScanTarget(args.path)
+    result = ScanRunner("docker", target).run(args.service)
+    return _finish_scan(args, result)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
     if args.command == "scan" and args.provider == "aws":
         return _run_aws(args)
+    if args.command == "scan" and args.provider == "docker":
+        return _run_docker(args)
 
     parser.error("Unsupported command")
     return 2
