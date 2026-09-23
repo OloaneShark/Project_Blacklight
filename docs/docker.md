@@ -11,7 +11,7 @@ ghcr.io/oloaneshark/project-blacklight
 Versioned releases use the package version as the image tag:
 
 ```text
-ghcr.io/oloaneshark/project-blacklight:0.1.0a20
+ghcr.io/oloaneshark/project-blacklight:0.1.0a21
 ```
 
 Stable non-prerelease releases also update the `latest` tag. Alpha, beta, and release-candidate releases do **not** move `latest`.
@@ -52,24 +52,37 @@ The image entry point is the Blacklight CLI itself, so arguments after the image
 Check the version:
 
 ```bash
-docker run --rm ghcr.io/oloaneshark/project-blacklight:0.1.0a20 --version
+docker run --rm ghcr.io/oloaneshark/project-blacklight:0.1.0a21 --version
 ```
 
 Show AWS scan options:
 
 ```bash
-docker run --rm ghcr.io/oloaneshark/project-blacklight:0.1.0a20 scan aws --help
+docker run --rm ghcr.io/oloaneshark/project-blacklight:0.1.0a21 scan aws --help
 ```
 
 Run one scanner:
 
 ```bash
 docker run --rm \
-  ghcr.io/oloaneshark/project-blacklight:0.1.0a20 \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
   scan aws --service s3
 ```
 
-Blacklight still needs an AWS credential source when a real scan is performed.
+Blacklight still needs an AWS credential source when a real AWS scan is performed.
+
+### Scan Dockerfiles with the container
+
+Mount a local project read-only and point the Docker scanner at the mounted directory:
+
+```bash
+docker run --rm \
+  -v "$PWD:/workspace:ro" \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
+  scan docker --path /workspace
+```
+
+Dockerfile scanning is static and does not require mounting the host Docker socket.
 
 ## AWS credentials
 
@@ -85,7 +98,7 @@ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY \
   -e AWS_SESSION_TOKEN \
   -e AWS_REGION \
-  ghcr.io/oloaneshark/project-blacklight:0.1.0a20 \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
   scan aws
 ```
 
@@ -101,7 +114,7 @@ docker run --rm \
   -v "$HOME/.aws:/aws:ro" \
   -e AWS_SHARED_CREDENTIALS_FILE=/aws/credentials \
   -e AWS_CONFIG_FILE=/aws/config \
-  ghcr.io/oloaneshark/project-blacklight:0.1.0a20 \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
   scan aws --profile blacklight-audit
 ```
 
@@ -113,7 +126,7 @@ Console and JSON output can be captured directly by the host shell:
 
 ```bash
 docker run --rm \
-  ghcr.io/oloaneshark/project-blacklight:0.1.0a20 \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
   scan aws --format json > blacklight-scan.json
 ```
 
@@ -125,7 +138,7 @@ mkdir -p reports
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$PWD/reports:/reports" \
-  ghcr.io/oloaneshark/project-blacklight:0.1.0a20 \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
   scan aws --format html --output /reports/blacklight-report.html
 ```
 
@@ -137,7 +150,7 @@ The container preserves Blacklight's normal exit-code behavior, so it can be use
 
 ```bash
 docker run --rm \
-  ghcr.io/oloaneshark/project-blacklight:0.1.0a20 \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
   scan aws --fail-on high --require-full-coverage
 ```
 

@@ -6,15 +6,18 @@ The standalone build is intended for users who want to run Blacklight without in
 
 ## Release artifacts
 
-Versioned GitHub Releases include platform archives named like:
+Versioned GitHub Releases use stable platform asset names so download/install links do not need to change every release:
 
 ```text
-project-blacklight-0.1.0a19-windows-x86_64.zip
-project-blacklight-0.1.0a19-linux-x86_64.tar.gz
-project-blacklight-0.1.0a19-macos-arm64.tar.gz
+Project-Blacklight-Windows-x64.zip
+Project-Blacklight-Windows-ARM64.zip
+Project-Blacklight-Linux-x64.tar.gz
+Project-Blacklight-Linux-ARM64.tar.gz
+Project-Blacklight-MacOS-x64.tar.gz
+Project-Blacklight-MacOS-ARM64.tar.gz
 ```
 
-The exact architecture suffix is derived from the runner that built the executable.
+Release CI builds x64 and ARM64 variants for Windows, Linux, and macOS on native GitHub-hosted runners.
 
 Each archive contains:
 
@@ -26,6 +29,28 @@ project-blacklight-<version>/
 ```
 
 The GitHub Release also contains a `SHA256SUMS` file covering the Python distributions and every standalone archive.
+
+## One-command installers
+
+The repository includes installers that locate the newest published GitHub Release, download the correct standalone archive for the machine, verify it against the release `SHA256SUMS`, and install the Blacklight executable.
+
+macOS / Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.ps1 | iex
+```
+
+The Unix installer defaults to `~/.local/bin`. The Windows installer defaults to `%LOCALAPPDATA%\ProjectBlacklight\bin` and adds that directory to the user's PATH when necessary.
+
+Set `BLACKLIGHT_INSTALL_DIR` before running the installer to choose another destination.
+
+Because the installer resolves a GitHub Release dynamically, it can install the newest published alpha/prerelease as well as future stable releases.
 
 ## No Python runtime required
 
@@ -92,7 +117,7 @@ When a version tag is pushed, `.github/workflows/github-release.yml`:
 
 1. validates the release tag/version/changelog/main ancestry
 2. builds the Python wheel and source distribution
-3. builds standalone executables on Windows, Linux, and macOS
+3. builds standalone executables on Windows, Linux, and macOS with stable release-asset names
 4. smoke-tests each standalone binary on the OS that built it
 5. downloads all release artifacts into the release-preparation job
 6. generates one `SHA256SUMS` file

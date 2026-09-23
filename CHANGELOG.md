@@ -2,6 +2,29 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.21] - 2026-09-23
+
+### Added
+
+- Deterministic local Dockerfile security scanner available through `blacklight scan docker --path <path>`.
+- Recursive discovery for `Dockerfile`, `Dockerfile.*`, and `*.Dockerfile` project files while skipping common generated/dependency directories.
+- HIGH checks for final-stage root runtime, populated secret-like `ARG`/`ENV` values, and curl/wget output piped directly into sh/bash.
+- MEDIUM checks for implicit/`:latest` base images, unchecked remote HTTP(S) `ADD`, and `chmod 777`.
+- Static-analysis boundaries for variable-based `USER` instructions and remote `ADD --checksum=...`.
+- Docker scanning support for console, JSON, HTML, risk scoring, coverage reporting, severity gates, and full-coverage gates.
+- Dockerfile scanner and CLI tests covering secure/insecure configurations, secret-value redaction, multi-stage builds, discovery, parse boundaries, and missing targets.
+- One-command macOS/Linux and Windows standalone installers that select the newest published release, verify `SHA256SUMS`, and install the Blacklight executable.
+- Stable standalone release asset names such as `Project-Blacklight-Windows-x64.zip` so install/download tooling does not hard-code a version.
+- Standalone CI syntax validation for both installer scripts.
+- Dedicated Dockerfile security-scanning documentation.
+
+### Changed
+
+- Project/package descriptions now cover both cloud and container security.
+- Console and HTML scan context are provider-aware so Docker scans do not display irrelevant AWS account/identity fields.
+- Standalone release documentation now describes stable platform asset names and one-command installation.
+- Roadmap advances Docker security scanning from distribution-only support to deterministic Dockerfile analysis.
+
 ## [0.1.0-alpha.20] - 2026-09-23
 
 ### Added

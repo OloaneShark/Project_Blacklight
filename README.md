@@ -1,6 +1,6 @@
 # Project Blacklight
 
-**Project Blacklight is an open-source cloud security scanning and risk-visibility toolkit.**
+**Project Blacklight is an open-source cloud and container security scanning and risk-visibility toolkit.**
 
 Blacklight reveals security weaknesses that are easy to miss in normal cloud configuration noise. Detection is deterministic: provider APIs and explicit security checks decide what is wrong. AI may be added later as an optional analyst layer for correlation, prioritization, explanation, and remediation assistance, but Blacklight does not require AI to detect security problems.
 
@@ -8,7 +8,9 @@ Blacklight reveals security weaknesses that are easy to miss in normal cloud con
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, and Amazon GuardDuty. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, and local Dockerfiles. Findings use stable check IDs, severities, evidence, and remediation guidance.
+
+The Dockerfile scanner statically detects root runtime configuration, implicit/latest base-image tags, secret-like values embedded through ARG/ENV, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. It does not require a Docker daemon. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
 
 The IAM scanner checks root MFA, long-lived access-key age/usage, policies attached directly to IAM users, groups, and roles, and IAM role trust policies. It flags unconditional identity-policy `Allow` statements that grant both `Action: "*"` and `Resource: "*"`, plus role trust statements with a wildcard principal and STS assume-role action but no condition. These checks report directly observed policy evidence; they do not claim to calculate final effective permissions or every prerequisite for successful role assumption.
 
@@ -17,6 +19,28 @@ The Lambda scanner checks whether Lambda Function URLs allow unauthenticated pub
 Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score. See [docs/risk-engine.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/risk-engine.md) for the scoring model and current correlation rules.
 
 Risk and scan coverage are reported separately. Scanner `ERROR` findings do not add security-risk points, but they reduce confidence that the observed risk score represents the entire selected scan scope. Coverage is reported as `FULL`, `PARTIAL`, `LIMITED`, or `UNKNOWN`, with a corresponding deterministic risk-confidence label. See [docs/coverage-confidence.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/coverage-confidence.md).
+
+## Download / quick install
+
+Blacklight's standalone releases are designed to work like a normal downloadable CLI: no Python setup is required.
+
+macOS / Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.ps1 | iex
+```
+
+The installers select the newest published GitHub Release for the current OS/architecture, verify the downloaded archive against `SHA256SUMS`, and install the standalone executable.
+
+Manual downloads are also available from [GitHub Releases](https://github.com/OloaneShark/Project_Blacklight/releases) using stable asset names such as `Project-Blacklight-Windows-x64.zip`.
+
+> A published GitHub Release is required before these installer commands can download Blacklight. The repository currently has the release automation in place; the next release tag activates the public downloads.
 
 ## Install from source
 
@@ -96,6 +120,18 @@ Scan all supported AWS services:
 
 ```bash
 blacklight scan aws
+```
+
+Scan Dockerfiles in the current project:
+
+```bash
+blacklight scan docker --path .
+```
+
+Scan one Dockerfile:
+
+```bash
+blacklight scan docker --path ./Dockerfile
 ```
 
 Scan one service:
@@ -194,14 +230,16 @@ blacklight_security/
 ├── runner.py
 ├── scan_context.py
 └── scanners/
-    └── aws/
-        ├── s3.py
-        ├── iam.py
-        ├── cloudtrail.py
-        ├── ec2.py
-        ├── rds.py
-        ├── lambda_functions.py
-        └── guardduty.py
+    ├── aws/
+    │   ├── s3.py
+    │   ├── iam.py
+    │   ├── cloudtrail.py
+    │   ├── ec2.py
+    │   ├── rds.py
+    │   ├── lambda_functions.py
+    │   └── guardduty.py
+    └── docker/
+        └── dockerfile.py
 ```
 
 The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, isolates per-scanner AWS API failures, tracks coverage, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes successfully observed security findings after detection. The coverage layer describes how completely the selected scope was inspected without changing the risk score. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
@@ -214,7 +252,7 @@ Next priorities:
 
 - Deeper AWS checks and additional AWS services
 - First PyPI release after Trusted Publisher activation
-- Docker and Kubernetes security scanners
+- Deeper Docker security checks and Kubernetes security scanners
 - Optional pluggable AI analyst integrations
 
 ## Contributing

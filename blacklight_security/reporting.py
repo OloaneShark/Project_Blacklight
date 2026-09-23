@@ -48,12 +48,21 @@ def render_console(
             [
                 f"Status: {metadata['status']}",
                 f"Provider: {metadata['provider']}",
-                f"Region: {metadata['region'] or 'default/unspecified'}",
-                f"Profile: {context.get('profile') or 'default/credential chain'}",
-                f"Account: {identity.get('account_id') or 'unavailable'}",
-                f"Partition: {identity.get('partition') or 'unavailable'}",
-                f"Principal: {identity.get('principal_arn') or 'unavailable'}",
-                f"Identity: {identity.get('status') or 'UNAVAILABLE'}",
+            ]
+        )
+        if metadata["provider"] == "aws":
+            lines.extend(
+                [
+                    f"Region: {metadata['region'] or 'default/unspecified'}",
+                    f"Profile: {context.get('profile') or 'default/credential chain'}",
+                    f"Account: {identity.get('account_id') or 'unavailable'}",
+                    f"Partition: {identity.get('partition') or 'unavailable'}",
+                    f"Principal: {identity.get('principal_arn') or 'unavailable'}",
+                    f"Identity: {identity.get('status') or 'UNAVAILABLE'}",
+                ]
+            )
+        lines.extend(
+            [
                 f"Scanners: {', '.join(metadata['scanners']) or 'none'}",
                 f"Duration: {metadata['duration_ms']} ms",
                 (
@@ -79,7 +88,7 @@ def render_console(
                 f"Coverage gate: {gate_status} "
                 f"(require {coverage_gate.required_status}, actual {coverage_gate.actual_status})"
             )
-        if identity.get("error"):
+        if metadata["provider"] == "aws" and identity.get("error"):
             lines.append(f"Identity error: {identity['error']}")
         lines.append("")
 
