@@ -69,7 +69,20 @@ docker run --rm \
   scan aws --service s3
 ```
 
-Blacklight still needs an AWS credential source when a real scan is performed.
+Blacklight still needs an AWS credential source when a real AWS scan is performed.
+
+### Scan Dockerfiles with the container
+
+Mount a local project read-only and point the Docker scanner at the mounted directory:
+
+```bash
+docker run --rm \
+  -v "$PWD:/workspace:ro" \
+  ghcr.io/oloaneshark/project-blacklight:0.1.0a21 \
+  scan docker --path /workspace
+```
+
+Dockerfile scanning is static and does not require mounting the host Docker socket.
 
 ## AWS credentials
 
