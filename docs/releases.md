@@ -22,9 +22,9 @@ Git tag:         v0.1.0a18
 7. GitHub Actions creates a **draft** GitHub Release with generated notes and attached artifacts.
 8. Review the draft release.
 9. Manually click **Publish release**.
-10. Publishing the release triggers the separate PyPI Trusted Publishing workflow.
+10. Publishing the release triggers the separate PyPI Trusted Publishing workflow and the GHCR container publishing workflow.
 
-This keeps GitHub Release creation reviewable and prevents an automated tag push from immediately publishing to PyPI.
+This keeps GitHub Release creation reviewable and prevents an automated tag push from immediately publishing packages or container images.
 
 ## Creating the tag
 
@@ -111,3 +111,25 @@ human publishes GitHub Release
 ```
 
 The PyPI workflow therefore publishes the same distribution files that were reviewed on the GitHub Release instead of rebuilding different artifacts after release approval.
+
+
+## Container-image handoff
+
+Publishing the reviewed GitHub Release also triggers `.github/workflows/docker-release.yml`.
+
+That workflow builds and publishes:
+
+```text
+ghcr.io/oloaneshark/project-blacklight:<version>
+```
+
+for both:
+
+```text
+linux/amd64
+linux/arm64
+```
+
+Prerelease versions publish only the explicit version tag. Stable releases also update `latest`.
+
+Container publication is independent from PyPI Trusted Publishing. A PyPI configuration failure does not prevent the separate GHCR workflow from publishing its image, and a GHCR failure does not change the Python release artifacts already attached to the GitHub Release.
