@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "project-blacklight-security"
 dynamic = ["version"]
-description = "Open-source cloud security scanning and risk visibility toolkit."
+description = "Open-source cloud and container security scanning and risk visibility toolkit."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
   { name = "Dennis Oloane" }
 ]
-keywords = ["cybersecurity", "aws", "cloud-security", "security-scanner", "devsecops"]
+keywords = ["cybersecurity", "aws", "cloud-security", "container-security", "docker", "security-scanner", "devsecops"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
