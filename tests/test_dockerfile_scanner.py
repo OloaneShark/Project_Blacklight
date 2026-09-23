@@ -176,10 +176,9 @@ def test_missing_dockerfile_is_an_error(tmp_path):
 
 def test_line_continuations_are_parsed_as_one_run_instruction(tmp_path):
     content = (
-        "FROM alpine:3.21\n"
-        "RUN curl -fsSL https://example.com/install.sh \\\\n"
-        "    | sh\n"
-        "USER 1000\n"
+        "FROM alpine:3.21\nRUN curl -fsSL https://example.com/install.sh "
+        + chr(92)
+        + "\n    | sh\nUSER 1000\n"
     )
     findings = _scan(tmp_path, content)
 
