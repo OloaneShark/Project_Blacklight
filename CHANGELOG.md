@@ -2,6 +2,25 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.20] - 2026-09-23
+
+### Added
+
+- Production multi-stage Dockerfile for the Blacklight CLI.
+- Non-root container runtime using UID/GID `65532:65532`.
+- Focused `.dockerignore` so tests, legacy code, Git metadata, local environments, reports, and build artifacts are excluded from the container build context.
+- Docker CI that builds the image and verifies the package version, non-root runtime, AWS CLI parser, and OCI version label.
+- GitHub Container Registry release workflow that publishes multi-platform `linux/amd64` and `linux/arm64` images after a GitHub Release is manually published.
+- Versioned GHCR image tags at `ghcr.io/oloaneshark/project-blacklight:<version>`, with `latest` reserved for non-prerelease releases.
+- OCI source/version/revision/license metadata plus release-build provenance and SBOM attestations.
+- Docker usage documentation covering AWS credentials, profile mounts, report persistence, CI/CD gates, local builds, GHCR publication, and digest pinning.
+
+### Changed
+
+- Docker distribution is now part of the versioned release pipeline rather than an unfinished roadmap item.
+- The release publish event now drives PyPI and GHCR through separate workflows so either distribution channel can fail independently.
+- Generated-artifact ignore rules now correctly ignore `reports/` and `build/` separately instead of the accidental `reports/build/` path.
+
 ## [0.1.0-alpha.19] - 2026-09-22
 
 ### Added
