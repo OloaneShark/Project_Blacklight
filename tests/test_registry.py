@@ -18,3 +18,12 @@ def test_registry_selects_one_scanner():
     assert len(specs) == 1
     assert specs[0].provider == "aws"
     assert specs[0].name == "s3"
+
+
+def test_builtin_docker_scanner_is_registered():
+    assert scanner_names("docker") == ["dockerfile"]
+
+    specs = scanner_specs("docker", "dockerfile")
+    assert len(specs) == 1
+    assert specs[0].provider == "docker"
+    assert specs[0].name == "dockerfile"
