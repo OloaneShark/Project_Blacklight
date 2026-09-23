@@ -189,3 +189,32 @@ USER 1000
 
     assert finding.severity is Severity.HIGH
     assert finding.evidence["matches"] == [{"line": 2}]
+
+
+def test_variable_runtime_user_is_informational_not_pass(tmp_path):
+    findings = _scan(
+        tmp_path,
+        """
+FROM alpine:3.21
+ARG APP_USER=1000
+USER $APP_USER
+""".strip(),
+    )
+
+    finding = _by_check(findings)["docker.dockerfile.root_user"]
+
+    assert finding.severity is Severity.INFO
+    assert finding.evidence["statically_resolved"] is False
+
+
+def test_remote_add_with_checksum_is_not_flagged(tmp_path):
+    findings = _scan(
+        tmp_path,
+        """
+FROM alpine:3.21
+ADD --checksum=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa https://example.com/tool /usr/local/bin/tool
+USER 1000
+""".strip(),
+    )
+
+    assert _by_check(findings)["docker.dockerfile.remote_add"].severity is Severity.PASS
