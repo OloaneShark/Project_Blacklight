@@ -10,11 +10,14 @@ Versioned GitHub Releases use stable platform asset names so download/install li
 
 ```text
 Project-Blacklight-Windows-x64.zip
+Project-Blacklight-Windows-ARM64.zip
 Project-Blacklight-Linux-x64.tar.gz
+Project-Blacklight-Linux-ARM64.tar.gz
+Project-Blacklight-MacOS-x64.tar.gz
 Project-Blacklight-MacOS-ARM64.tar.gz
 ```
 
-The exact architecture suffix is derived from the runner that built the executable.
+Release CI builds x64 and ARM64 variants for Windows, Linux, and macOS on native GitHub-hosted runners.
 
 Each archive contains:
 
