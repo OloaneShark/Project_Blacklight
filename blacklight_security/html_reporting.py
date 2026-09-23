@@ -197,6 +197,18 @@ def render_html(
         if identity_error
         else ""
     )
+    if metadata.get("provider") == "aws":
+        provider_context_cells = f"""
+      <div><span>Region</span>{_text(metadata.get('region') or 'default/unspecified')}</div>
+      <div><span>Profile</span>{_text(profile)}</div>
+      <div><span>AWS Account</span>{_text(account_id)}</div>
+      <div><span>Partition</span>{_text(partition)}</div>
+      <div><span>Principal</span>{_text(principal_arn)}</div>
+      <div><span>Identity Status</span>{_text(identity_status)}</div>
+      {identity_error_cell}
+        """
+    else:
+        provider_context_cells = ""
 
     coverage_status = str(coverage.get("status") or "UNKNOWN")
     coverage_class = f"coverage-{coverage_status.lower()}"
@@ -305,7 +317,7 @@ def render_html(
 <body>
 <main>
   <header>
-    <div class="eyebrow">Deterministic cloud security assessment</div>
+    <div class="eyebrow">Deterministic security assessment</div>
     <h1>Project Blacklight</h1>
     <div>Security Report</div>
     <div class="risk-line">
@@ -321,13 +333,7 @@ def render_html(
     <div class="metadata">
       <div><span>Status</span>{_text(metadata.get('status', 'unknown'))}</div>
       <div><span>Provider</span>{_text(metadata.get('provider', 'unknown'))}</div>
-      <div><span>Region</span>{_text(metadata.get('region') or 'default/unspecified')}</div>
-      <div><span>Profile</span>{_text(profile)}</div>
-      <div><span>AWS Account</span>{_text(account_id)}</div>
-      <div><span>Partition</span>{_text(partition)}</div>
-      <div><span>Principal</span>{_text(principal_arn)}</div>
-      <div><span>Identity Status</span>{_text(identity_status)}</div>
-      {identity_error_cell}
+      {provider_context_cells}
       <div><span>Scanners</span>{_text(scanners)}</div>
       <div><span>Findings</span>{_text(metadata.get('finding_count', len(findings)))}</div>
       <div><span>Duration</span>{_text(duration_text)}</div>
