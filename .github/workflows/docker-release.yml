@@ -1,0 +1,82 @@
+name: Publish Docker image
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: publish multi-platform image to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out released source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Resolve and verify image version
+        id: image
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          PACKAGE_VERSION="$(python -c 'from blacklight_security import __version__; print(__version__)')"
+          RELEASE_VERSION="${RELEASE_TAG#v}"
+
+          if [ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "Release tag $RELEASE_TAG does not match package version $PACKAGE_VERSION."
+            exit 1
+          fi
+
+          IMAGE="ghcr.io/oloaneshark/project-blacklight"
+          {
+            echo "version=$RELEASE_VERSION"
+            echo "image=$IMAGE"
+            echo "tags<<EOF"
+            echo "$IMAGE:$RELEASE_VERSION"
+            if [ "$IS_PRERELEASE" = "false" ]; then
+              echo "$IMAGE:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish multi-platform image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.tags }}
+          build-args: |
+            VERSION=${{ steps.image.outputs.version }}
+            REVISION=${{ github.sha }}
+            SOURCE=https://github.com/OloaneShark/Project_Blacklight
+          labels: |
+            org.opencontainers.image.title=Project Blacklight
+            org.opencontainers.image.version=${{ steps.image.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/OloaneShark/Project_Blacklight
+            org.opencontainers.image.licenses=MIT
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
