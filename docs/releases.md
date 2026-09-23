@@ -57,13 +57,13 @@ The draft GitHub Release contains the Python distributions plus platform standal
 ```text
 project_blacklight_security-<version>-py3-none-any.whl
 project_blacklight_security-<version>.tar.gz
-project-blacklight-<version>-windows-<arch>.zip
-project-blacklight-<version>-linux-<arch>.tar.gz
-project-blacklight-<version>-macos-<arch>.tar.gz
+Project-Blacklight-Windows-<arch>.zip
+Project-Blacklight-Linux-<arch>.tar.gz
+Project-Blacklight-MacOS-<arch>.tar.gz
 SHA256SUMS
 ```
 
-The checksum file is generated from every artifact attached to the release. The standalone archives are built and smoke-tested on the operating system they target.
+The checksum file is generated from every artifact attached to the release. Standalone asset names stay stable across releases so the installer scripts can locate the newest platform build without hard-coding a Blacklight version. The standalone archives are built and smoke-tested on the operating system they target.
 
 For alpha, beta, and release-candidate versions, the workflow marks the GitHub Release as a prerelease.
 
