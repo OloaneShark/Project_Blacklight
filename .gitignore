@@ -1,11 +1,11 @@
-
 .venv/
 __pycache__/
 *.pyc
 .env
 instance/
 users.db
-reports/build/
+reports/
+build/
 dist/
 *.egg-info/
 standalone-dist/
