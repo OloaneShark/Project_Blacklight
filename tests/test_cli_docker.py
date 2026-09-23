@@ -1,8 +1,6 @@
 from unittest.mock import patch
 
 from blacklight_security.cli import main
-from blacklight_security.models import Severity
-
 
 def test_docker_cli_scans_dockerfile_and_returns_security_gate_failure(tmp_path):
     (tmp_path / "Dockerfile").write_text(
