@@ -278,6 +278,23 @@ class DockerfileScanner:
                 {"final_stage_user": final_user.value, "line": final_user.line},
             )
 
+        if "$" in user_value:
+            return self._finding(
+                resource_id,
+                "docker.dockerfile.root_user",
+                Severity.INFO,
+                "Final container user is resolved from a variable",
+                (
+                    f"The final USER instruction selects {final_user.value!r}. "
+                    "Blacklight cannot prove the resolved runtime user from static Dockerfile text."
+                ),
+                evidence={
+                    "final_stage_user": final_user.value,
+                    "line": final_user.line,
+                    "statically_resolved": False,
+                },
+            )
+
         return self._finding(
             resource_id,
             "docker.dockerfile.root_user",
@@ -387,6 +404,8 @@ class DockerfileScanner:
                 tokens = shlex.split(instruction.value)
             except ValueError:
                 tokens = instruction.value.split()
+            if any(token.startswith("--checksum=") for token in tokens):
+                continue
             for token in tokens[:-1]:
                 if _REMOTE_URL_RE.match(token):
                     matches.append({"source": token, "line": instruction.line})
