@@ -34,8 +34,10 @@ jobs:
           fi
 
           IMAGE="ghcr.io/oloaneshark/project-blacklight"
+          REVISION="$(git rev-parse HEAD)"
           {
             echo "version=$RELEASE_VERSION"
+            echo "revision=$REVISION"
             echo "image=$IMAGE"
             echo "tags<<EOF"
             echo "$IMAGE:$RELEASE_VERSION"
@@ -68,12 +70,12 @@ jobs:
           tags: ${{ steps.image.outputs.tags }}
           build-args: |
             VERSION=${{ steps.image.outputs.version }}
-            REVISION=${{ github.sha }}
+            REVISION=${{ steps.image.outputs.revision }}
             SOURCE=https://github.com/OloaneShark/Project_Blacklight
           labels: |
             org.opencontainers.image.title=Project Blacklight
             org.opencontainers.image.version=${{ steps.image.outputs.version }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.image.outputs.revision }}
             org.opencontainers.image.source=https://github.com/OloaneShark/Project_Blacklight
             org.opencontainers.image.licenses=MIT
           cache-from: type=gha
