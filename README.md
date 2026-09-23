@@ -56,6 +56,16 @@ Versioned GitHub Releases build and smoke-test self-contained Blacklight executa
 
 See [docs/standalone.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/standalone.md) for local build commands, release artifact names, checksum verification, and the current code-signing limitations.
 
+## Docker
+
+Project Blacklight also ships as a non-root multi-platform container image through GitHub Container Registry. Versioned releases publish Linux AMD64 and ARM64 images under:
+
+```text
+ghcr.io/oloaneshark/project-blacklight:<version>
+```
+
+The container preserves the normal Blacklight CLI and CI/CD exit codes and contains no AWS credentials. See [docs/docker.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker.md) for credentials, report mounts, local builds, image tags, and GHCR publishing details.
+
 ## AWS credentials and least privilege
 
 Blacklight uses the standard boto3/AWS credential chain. Do not hard-code credentials into the project.
@@ -204,7 +214,6 @@ Next priorities:
 
 - Deeper AWS checks and additional AWS services
 - First PyPI release after Trusted Publisher activation
-- Docker distribution
 - Docker and Kubernetes security scanners
 - Optional pluggable AI analyst integrations
 
