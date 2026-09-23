@@ -62,3 +62,18 @@ def test_docker_cli_does_not_create_aws_session(tmp_path):
 
     assert exit_code == 0
     aws_session.assert_not_called()
+
+
+def test_docker_console_does_not_render_aws_identity_fields(tmp_path, capsys):
+    (tmp_path / "Dockerfile").write_text(
+        "FROM alpine:3.21\nUSER 1000\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["scan", "docker", "--path", str(tmp_path)])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Provider: docker" in output
+    assert "AWS Account" not in output
+    assert "Principal:" not in output
