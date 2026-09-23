@@ -87,7 +87,16 @@ Repository:
 
 def _archive_bundle(bundle_dir: Path, platform_name: str, architecture: str) -> Path:
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
-    base_name = f"project-blacklight-{__version__}-{platform_name}-{architecture}"
+    platform_label = {
+        "windows": "Windows",
+        "linux": "Linux",
+        "macos": "MacOS",
+    }.get(platform_name, platform_name.title())
+    architecture_label = {
+        "x86_64": "x64",
+        "arm64": "ARM64",
+    }.get(architecture, architecture)
+    base_name = f"Project-Blacklight-{platform_label}-{architecture_label}"
 
     if platform_name == "windows":
         archive = OUTPUT_ROOT / f"{base_name}.zip"
