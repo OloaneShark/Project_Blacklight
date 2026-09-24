@@ -2,6 +2,16 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.25] - 2026-09-24
+
+### Changed
+
+- Restored the Blacklight Desktop interface to the previous dark security-workspace design from `0.1.0a23`.
+- Removed the experimental light/Unsloth-style shell introduced in `0.1.0a24`.
+- Restored the original Dashboard, Targets, Scan, Findings, Reports, and Settings navigation.
+- Restored the dark Blacklight theme, metric cards, target cards, scan form, findings workspace, and report-export presentation.
+- Removed the temporary light-UI screenshot capture helper and associated CI screenshot step.
+
 ## [0.1.0-alpha.24] - 2026-09-24
 
 ### Changed
