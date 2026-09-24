@@ -15,6 +15,7 @@ from blacklight_security.registry import scanner_names
 from blacklight_security.reporting import render_console, render_json
 from blacklight_security.runner import ScanResult, ScanRunner
 from blacklight_security.scanners.docker import DockerScanTarget
+from blacklight_security.scanners.kubernetes import KubernetesScanTarget
 
 
 def _add_report_options(parser: argparse.ArgumentParser) -> None:
@@ -77,6 +78,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Dockerfile or project directory to scan (default: current directory)",
     )
     _add_report_options(docker)
+
+    kubernetes = providers.add_parser(
+        "kubernetes",
+        aliases=["k8s"],
+        help="Scan local Kubernetes manifests",
+    )
+    kubernetes.add_argument(
+        "--service",
+        choices=["all", *scanner_names("kubernetes")],
+        default="all",
+        help="Kubernetes scanner to run (default: all)",
+    )
+    kubernetes.add_argument(
+        "--path",
+        type=Path,
+        default=Path("."),
+        help="Manifest file or project directory to scan (default: current directory)",
+    )
+    _add_report_options(kubernetes)
 
     return parser
 
@@ -165,6 +185,15 @@ def _run_docker(args: argparse.Namespace) -> int:
     return _finish_scan(args, result)
 
 
+def _run_kubernetes(args: argparse.Namespace) -> int:
+    if not _validate_output_args(args):
+        return 2
+
+    target = KubernetesScanTarget(args.path)
+    result = ScanRunner("kubernetes", target).run(args.service)
+    return _finish_scan(args, result)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -173,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_aws(args)
     if args.command == "scan" and args.provider == "docker":
         return _run_docker(args)
+    if args.command == "scan" and args.provider in {"kubernetes", "k8s"}:
+        return _run_kubernetes(args)
 
     parser.error("Unsupported command")
     return 2
