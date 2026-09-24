@@ -41,6 +41,7 @@ def load_builtin_scanners() -> None:
         S3Scanner,
     )
     from blacklight_security.scanners.docker import DockerfileScanner
+    from blacklight_security.scanners.kubernetes import KubernetesManifestScanner
 
     for name, scanner_cls in {
         "s3": S3Scanner,
@@ -54,6 +55,7 @@ def load_builtin_scanners() -> None:
         register_scanner("aws", name, scanner_cls)
 
     register_scanner("docker", "dockerfile", DockerfileScanner)
+    register_scanner("kubernetes", "manifest", KubernetesManifestScanner)
 
     _BUILTINS_LOADED = True
 
