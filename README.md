@@ -28,8 +28,8 @@ Project Blacklight now has a graphical Windows desktop front end built on the sa
 
 The desktop app provides:
 
-- a light-only local security workspace with a slim sidebar and focused scan launcher
-- AWS / Docker / Kubernetes target selection from the top bar, Home launcher, or Targets page
+- a dark local security workspace
+- AWS / Docker / Kubernetes target selection
 - background scans that do not freeze the UI
 - risk and coverage overview
 - findings table with remediation and evidence
