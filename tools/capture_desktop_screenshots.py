@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtGui import QColor, QBrush
 from PySide6.QtWidgets import QApplication, QTableWidgetItem
 
 from blacklight_security.desktop.app import BlacklightDesktop
+from blacklight_security.desktop.theme import DESKTOP_STYLESHEET
 
 
 OUTPUT = Path("desktop-screenshots")
@@ -27,6 +25,8 @@ def main() -> int:
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
     app = QApplication([])
+    app.setApplicationName("Project Blacklight")
+    app.setStyleSheet(DESKTOP_STYLESHEET)
     window = BlacklightDesktop()
     window.resize(1280, 820)
     window.show()
