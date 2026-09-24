@@ -22,6 +22,29 @@ Blacklight also performs deterministic risk assessment. Severity weights create 
 
 Risk and scan coverage are reported separately. Scanner `ERROR` findings do not add security-risk points, but they reduce confidence that the observed risk score represents the entire selected scan scope. Coverage is reported as `FULL`, `PARTIAL`, `LIMITED`, or `UNKNOWN`, with a corresponding deterministic risk-confidence label. See [docs/coverage-confidence.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/coverage-confidence.md).
 
+## Blacklight Desktop
+
+Project Blacklight now has a graphical Windows desktop front end built on the same deterministic engine as the CLI.
+
+The desktop app provides:
+
+- a dark local security workspace
+- AWS / Docker / Kubernetes target selection
+- background scans that do not freeze the UI
+- risk and coverage overview
+- findings table with remediation and evidence
+- JSON and HTML export
+- a visible Server / SSH target slot for the next product phase
+
+Direct release assets are:
+
+```text
+Project-Blacklight-Desktop-Windows-x64.exe
+Project-Blacklight-Desktop-Windows-ARM64.exe
+```
+
+No Python installation is required. See [docs/desktop.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/desktop.md) and [GitHub Releases](https://github.com/OloaneShark/Project_Blacklight/releases).
+
 ## Download / quick install
 
 Blacklight's standalone releases are designed to work like a normal downloadable CLI: no Python setup is required.
