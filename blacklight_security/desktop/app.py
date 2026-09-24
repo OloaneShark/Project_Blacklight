@@ -170,6 +170,7 @@ class BlacklightDesktop(QMainWindow):
 
         self.pages = QStackedWidget()
         self.dashboard_page = self._build_dashboard()
+        self.targets_page = self._build_targets_page()
         self.scan_page = self._build_scan_page()
         self.findings_page = self._build_findings_page()
         self.reports_page = self._build_reports_page()
@@ -177,6 +178,7 @@ class BlacklightDesktop(QMainWindow):
 
         for page in (
             self.dashboard_page,
+            self.targets_page,
             self.scan_page,
             self.findings_page,
             self.reports_page,
@@ -206,7 +208,9 @@ class BlacklightDesktop(QMainWindow):
         layout.addSpacing(24)
 
         self.nav_buttons: list[QPushButton] = []
-        for index, label in enumerate(("Dashboard", "Scan", "Findings", "Reports", "Settings")):
+        for index, label in enumerate(
+            ("Dashboard", "Targets", "Scan", "Findings", "Reports", "Settings")
+        ):
             button = QPushButton(label)
             button.setObjectName("NavButton")
             button.setCheckable(True)
@@ -288,8 +292,43 @@ class BlacklightDesktop(QMainWindow):
         panel_layout.addWidget(text)
         open_scan = QPushButton("New Scan")
         open_scan.setObjectName("PrimaryButton")
-        open_scan.clicked.connect(lambda: self._set_page(1))
+        open_scan.clicked.connect(lambda: self._set_page(2))
         panel_layout.addWidget(open_scan)
+        layout.addWidget(panel)
+        layout.addStretch()
+        return page
+
+    def _build_targets_page(self) -> QWidget:
+        page, layout = self._page_shell(
+            "Targets",
+            "Choose what Blacklight should inspect. Current targets run locally or through read-only provider APIs.",
+        )
+
+        cards = QHBoxLayout()
+        targets = (
+            ("aws", "AWS Account", "Use an AWS profile or the default credential chain for read-only cloud security checks.", "READY", True),
+            ("docker", "Docker Project", "Choose a local Docker project or Dockerfile. No Docker daemon is required.", "READY", True),
+            ("kubernetes", "Kubernetes", "Choose local Kubernetes YAML. No cluster credentials are required for static manifest scans.", "READY", True),
+            ("server", "Server / SSH", "A future live-host target for SSH, services, firewall, users, permissions and host security.", "NEXT PHASE", False),
+        )
+        for provider, title, description, status, enabled in targets:
+            card = TargetCard(provider, title, description, status, enabled)
+            card.selected.connect(self._start_target)
+            cards.addWidget(card)
+
+        layout.addLayout(cards)
+
+        panel = QFrame()
+        panel.setObjectName("Panel")
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(18, 16, 18, 16)
+        target_note = QLabel(
+            "Target credentials are not stored by this first desktop build. AWS uses the normal "
+            "boto3 credential chain; Docker and Kubernetes scans read local files."
+        )
+        target_note.setObjectName("Muted")
+        target_note.setWordWrap(True)
+        panel_layout.addWidget(target_note)
         layout.addWidget(panel)
         layout.addStretch()
         return page
@@ -504,7 +543,7 @@ class BlacklightDesktop(QMainWindow):
         if provider_index is None:
             return
         self.provider_combo.setCurrentIndex(provider_index)
-        self._set_page(1)
+        self._set_page(2)
 
     def _provider_changed(self) -> None:
         if not hasattr(self, "provider_combo"):
@@ -597,7 +636,7 @@ class BlacklightDesktop(QMainWindow):
             f"Complete. Risk {assessment.level} ({assessment.score}/100), "
             f"coverage {result.coverage.status}."
         )
-        self._set_page(2)
+        self._set_page(3)
 
     def _scan_failed(self, message: str) -> None:
         self.scan_status.setText("Scan failed.")
