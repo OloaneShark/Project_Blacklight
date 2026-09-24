@@ -2,6 +2,27 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.23] - 2026-09-24
+
+### Added
+
+- First graphical Project Blacklight Desktop application built with PySide6/Qt.
+- Dark, sharp-edged local security workspace with Dashboard, Targets, Scan, Findings, Reports, and Settings pages.
+- Desktop target cards for AWS, Docker, Kubernetes, and a visible disabled Server/SSH next-phase slot.
+- Background scan execution so long-running AWS scans do not block the desktop UI thread.
+- Desktop scan controller that reuses the existing `ScanRunner`, deterministic findings, risk engine, coverage engine, severity gate, and full-coverage gate.
+- Findings workspace with risk/coverage metrics, severity/resource table, remediation details, and deterministic evidence.
+- JSON and HTML report export from the most recent desktop scan without rerunning the scan.
+- Windows x64 and Windows ARM64 desktop executable builds using PyInstaller windowed one-file packaging.
+- Dedicated Windows Desktop CI that smoke-tests both the source UI and frozen executable.
+- Versioned release integration for `Project-Blacklight-Desktop-Windows-x64.exe` and `Project-Blacklight-Desktop-Windows-ARM64.exe`.
+- Desktop architecture and usage documentation.
+
+### Changed
+
+- Blacklight's release artifacts now include both the CLI-native executables and the new graphical Windows Desktop application.
+- Desktop support is an optional dependency group so the core CLI package does not require Qt for normal command-line use.
+
 ## [0.1.0-alpha.22] - 2026-09-24
 
 ### Added

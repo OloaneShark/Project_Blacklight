@@ -11,6 +11,8 @@ on:
       - "pyproject.toml"
       - ".github/workflows/github-release.yml"
       - "tools/build_standalone.py"
+      - "tools/build_desktop.py"
+      - "blacklight_security/desktop/**"
 
 jobs:
   validate:
@@ -184,12 +186,51 @@ jobs:
           path: standalone-dist/*
           if-no-files-found: error
 
+  build-desktop:
+    name: desktop (${{ matrix.os }})
+    needs: validate
+    if: needs.validate.outputs.should_release == 'true'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - windows-11-arm
+
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Blacklight Desktop dependencies
+        run: python -m pip install -e ".[desktop]"
+
+      - name: Build and smoke-test desktop executable
+        run: python tools/build_desktop.py
+
+      - name: Upload desktop executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os }}-${{ runner.arch }}
+          path: desktop-dist/*
+          if-no-files-found: error
+
   prepare-release:
     name: publish alpha or prepare stable release
     needs:
       - validate
       - build-python
       - build-standalone
+      - build-desktop
     if: needs.validate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -217,6 +258,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: standalone-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Download desktop executables
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
           path: release-assets
           merge-multiple: true
 

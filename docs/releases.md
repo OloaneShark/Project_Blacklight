@@ -14,10 +14,11 @@ The release workflow:
 4. builds the Python wheel and source distribution
 5. validates them with `twine check`
 6. installs and smoke-tests the wheel
-7. builds native standalone archives on Windows, Linux, and macOS for x64 and ARM64
-8. smoke-tests every frozen executable on its native runner
-9. generates `SHA256SUMS`
-10. creates the matching `v<version>` tag and a public GitHub prerelease
+7. builds native CLI standalone archives on Windows, Linux, and macOS for x64 and ARM64
+8. builds graphical Blacklight Desktop executables for Windows x64 and ARM64
+9. smoke-tests every frozen CLI and desktop executable on its native runner
+10. generates `SHA256SUMS`
+11. creates the matching `v<version>` tag and a public GitHub prerelease
 
 If a GitHub Release for the version already exists, the automatic release path skips it rather than overwriting published artifacts.
 
@@ -50,6 +51,9 @@ Project-Blacklight-Linux-x64.tar.gz
 Project-Blacklight-Linux-ARM64.tar.gz
 Project-Blacklight-MacOS-x64.tar.gz
 Project-Blacklight-MacOS-ARM64.tar.gz
+
+Project-Blacklight-Desktop-Windows-x64.exe
+Project-Blacklight-Desktop-Windows-ARM64.exe
 
 SHA256SUMS
 ```
