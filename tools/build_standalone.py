@@ -64,6 +64,8 @@ Python is not required on the target machine.
 Quick start:
   blacklight --version
   blacklight scan aws
+  blacklight scan docker --path .
+  blacklight scan kubernetes --path .
 
 AWS authentication still uses the normal boto3/AWS credential chain. Configure
 credentials through an AWS profile, environment variables, an instance/role
