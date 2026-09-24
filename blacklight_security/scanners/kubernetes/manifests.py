@@ -144,15 +144,18 @@ class KubernetesManifestScanner:
             return spec
         if kind in {"Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "ReplicationController"}:
             template = spec.get("template", {})
-            return template.get("spec") if isinstance(template, dict) else None
+            pod_spec = template.get("spec") if isinstance(template, dict) else None
+            return pod_spec if isinstance(pod_spec, dict) else None
         if kind == "Job":
             template = spec.get("template", {})
-            return template.get("spec") if isinstance(template, dict) else None
+            pod_spec = template.get("spec") if isinstance(template, dict) else None
+            return pod_spec if isinstance(pod_spec, dict) else None
         if kind == "CronJob":
             job_template = spec.get("jobTemplate", {})
             job_spec = job_template.get("spec", {}) if isinstance(job_template, dict) else {}
             template = job_spec.get("template", {}) if isinstance(job_spec, dict) else {}
-            return template.get("spec") if isinstance(template, dict) else None
+            pod_spec = template.get("spec") if isinstance(template, dict) else None
+            return pod_spec if isinstance(pod_spec, dict) else None
         return None
 
     def _check_resource(
