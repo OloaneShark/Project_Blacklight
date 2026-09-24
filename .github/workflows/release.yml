@@ -37,6 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_RELEASE_TAG: ${{ github.event.release.tag_name }}
+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           PACKAGE_VERSION="$(python -c 'from blacklight_security import __version__; print(__version__)')"
           RELEASE_TAG="$EVENT_RELEASE_TAG"
@@ -52,9 +53,14 @@ jobs:
               echo "Automated prerelease $RELEASE_TAG was not found."
               SHOULD_PUBLISH=false
             else
-              IS_DRAFT="$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')"
+              RELEASE_META="$(gh release view "$RELEASE_TAG" --json isDraft,targetCommitish)"
+              IS_DRAFT="$(printf '%s' "$RELEASE_META" | jq -r '.isDraft')"
+              RELEASE_TARGET="$(printf '%s' "$RELEASE_META" | jq -r '.targetCommitish')"
               if [ "$IS_DRAFT" = "true" ]; then
                 echo "Release $RELEASE_TAG is still a draft."
+                SHOULD_PUBLISH=false
+              elif [ "$RELEASE_TARGET" != "$WORKFLOW_HEAD_SHA" ]; then
+                echo "Release $RELEASE_TAG targets $RELEASE_TARGET, not this workflow commit $WORKFLOW_HEAD_SHA."
                 SHOULD_PUBLISH=false
               fi
             fi
