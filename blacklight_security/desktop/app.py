@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QObject, QThread, Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -328,15 +328,18 @@ class BlacklightDesktop(QMainWindow):
         browse.clicked.connect(self._browse_path)
         path_layout.addWidget(self.path_input, 1)
         path_layout.addWidget(browse)
-        form.addRow("Path", self.path_container)
+        self.path_label = QLabel("Path")
+        form.addRow(self.path_label, self.path_container)
 
         self.profile_input = QLineEdit()
         self.profile_input.setPlaceholderText("Optional AWS profile")
-        form.addRow("AWS profile", self.profile_input)
+        self.profile_label = QLabel("AWS profile")
+        form.addRow(self.profile_label, self.profile_input)
 
         self.region_input = QLineEdit()
         self.region_input.setPlaceholderText("Optional region override")
-        form.addRow("AWS region", self.region_input)
+        self.region_label = QLabel("AWS region")
+        form.addRow(self.region_label, self.region_input)
 
         self.fail_on_combo = QComboBox()
         self.fail_on_combo.addItem("No severity gate", None)
@@ -509,8 +512,11 @@ class BlacklightDesktop(QMainWindow):
         provider = self.provider_combo.currentData()
         is_aws = provider == "aws"
         self.profile_input.setVisible(is_aws)
+        self.profile_label.setVisible(is_aws)
         self.region_input.setVisible(is_aws)
+        self.region_label.setVisible(is_aws)
         self.path_container.setVisible(not is_aws)
+        self.path_label.setVisible(not is_aws)
 
     def _browse_path(self) -> None:
         provider = self.provider_combo.currentData()
@@ -623,7 +629,9 @@ class BlacklightDesktop(QMainWindow):
 
         for row, finding in enumerate(findings):
             severity_item = QTableWidgetItem(finding.severity.value)
-            severity_item.setForeground(QColor(SEVERITY_COLORS.get(finding.severity, "#ffffff")))
+            severity_item.setForeground(
+                QBrush(QColor(SEVERITY_COLORS.get(finding.severity, "#ffffff")))
+            )
             resource_item = QTableWidgetItem(finding.resource_id)
             title_item = QTableWidgetItem(finding.title)
 
