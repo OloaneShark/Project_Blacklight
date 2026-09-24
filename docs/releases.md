@@ -1,135 +1,100 @@
 # Versioned GitHub Releases
 
-Project Blacklight prepares versioned GitHub Releases from tags after release changes are merged into `main`.
+Project Blacklight has two release paths.
 
-The release tag is the package version prefixed with `v`.
+## Alpha / beta / release-candidate versions
 
-Example:
+Prerelease versions such as `0.1.0a22` are automatically packaged when a new version reaches `main`.
 
-```text
-Package version: 0.1.0a18
-Git tag:         v0.1.0a18
-```
+The release workflow:
 
-## Release flow
+1. reads `blacklight_security.__version__`
+2. verifies the matching changelog heading
+3. verifies the source commit is contained in `main`
+4. builds the Python wheel and source distribution
+5. validates them with `twine check`
+6. installs and smoke-tests the wheel
+7. builds native standalone archives on Windows, Linux, and macOS for x64 and ARM64
+8. smoke-tests every frozen executable on its native runner
+9. generates `SHA256SUMS`
+10. creates the matching `v<version>` tag and a public GitHub prerelease
 
-1. Merge the intended release changes into `main`.
-2. Confirm CI is green.
-3. Confirm `blacklight_security.__version__` is the intended version.
-4. Confirm `CHANGELOG.md` has the matching release entry.
-5. Create and push the version tag.
-6. GitHub Actions builds and validates the release artifacts.
-7. GitHub Actions creates a **draft** GitHub Release with generated notes and attached artifacts.
-8. Review the draft release.
-9. Manually click **Publish release**.
-10. Publishing the release triggers the separate PyPI Trusted Publishing workflow and the GHCR container publishing workflow.
+If a GitHub Release for the version already exists, the automatic release path skips it rather than overwriting published artifacts.
 
-This keeps GitHub Release creation reviewable and prevents an automated tag push from immediately publishing packages or container images.
+## Stable versions
 
-## Creating the tag
+Stable versions do not auto-publish from a normal `main` push.
 
-Update local `main` first:
+Create the exact version tag explicitly:
 
 ```bash
 git switch main
 git pull
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-Create the exact version tag:
+The same validation/build pipeline runs, but the GitHub Release is created as a draft for human review before publication.
 
-```bash
-git tag v0.1.0a18
-git push origin v0.1.0a18
-```
+## Release artifacts
 
-The workflow rejects the tag if:
-
-- the tag version does not match `blacklight_security.__version__`
-- the tagged commit is not contained in `main`
-- the changelog does not contain the matching release heading
-- package build validation fails
-- the built wheel cannot be installed and executed
-
-## Draft release artifacts
-
-The draft GitHub Release contains the Python distributions plus platform standalone archives:
+A release contains:
 
 ```text
 project_blacklight_security-<version>-py3-none-any.whl
 project_blacklight_security-<version>.tar.gz
-Project-Blacklight-Windows-<arch>.zip
-Project-Blacklight-Linux-<arch>.tar.gz
-Project-Blacklight-MacOS-<arch>.tar.gz
+
+Project-Blacklight-Windows-x64.zip
+Project-Blacklight-Windows-ARM64.zip
+Project-Blacklight-Linux-x64.tar.gz
+Project-Blacklight-Linux-ARM64.tar.gz
+Project-Blacklight-MacOS-x64.tar.gz
+Project-Blacklight-MacOS-ARM64.tar.gz
+
 SHA256SUMS
 ```
 
-The checksum file is generated from every artifact attached to the release. Standalone asset names stay stable across releases so the installer scripts can locate the newest platform build without hard-coding a Blacklight version. The standalone archives are built and smoke-tested on the operating system they target.
+Standalone asset names intentionally stay stable across versions so the install scripts can discover the newest compatible archive.
 
-For alpha, beta, and release-candidate versions, the workflow marks the GitHub Release as a prerelease.
+## Public download installers
 
-## Rerunning a failed preparation
+macOS / Linux:
 
-If the workflow created a draft release before a later step was rerun, it will refresh the draft release assets with `--clobber`.
-
-It will **not** overwrite an already published release.
-
-If the source or package contents need to change after a release has been published:
-
-1. make the fix on a new branch
-2. merge it into `main`
-3. bump the package version
-4. add a new changelog entry
-5. create a new version tag
-
-Do not reuse a published version.
-
-## PyPI handoff
-
-The GitHub release preparation workflow and PyPI publishing workflow are deliberately separate.
-
-`.github/workflows/github-release.yml`:
-
-```text
-tag push
-  -> validate version/main/changelog
-  -> build wheel + sdist
-  -> build Windows/Linux/macOS standalone archives
-  -> twine check
-  -> smoke-test wheel and frozen executables
-  -> generate SHA256SUMS
-  -> create draft GitHub Release
+```bash
+curl -fsSL https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.sh | sh
 ```
 
-`.github/workflows/release.yml`:
+Windows PowerShell:
 
-```text
-human publishes GitHub Release
-  -> download the attached wheel + sdist
-  -> verify filenames/version
-  -> twine check
-  -> publish those exact reviewed artifacts to PyPI
+```powershell
+irm https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.ps1 | iex
 ```
 
-The PyPI workflow therefore publishes the same distribution files that were reviewed on the GitHub Release instead of rebuilding different artifacts after release approval.
+The installers resolve the newest published GitHub Release, choose the OS/architecture asset, download `SHA256SUMS`, verify the archive, and install the native executable.
 
+## PyPI and GHCR handoff
 
-## Container-image handoff
+GitHub prevents ordinary events created with a workflow's own `GITHUB_TOKEN` from recursively starting arbitrary workflows.
 
-Publishing the reviewed GitHub Release also triggers `.github/workflows/docker-release.yml`.
+For that reason, the PyPI and GHCR workflows support both:
 
-That workflow builds and publishes:
+- a normal human `release: published` event
+- successful completion of the `Prepare GitHub Release` workflow for automated prereleases
 
-```text
-ghcr.io/oloaneshark/project-blacklight:<version>
-```
+This keeps automated alpha downloads, PyPI publication, and container publication aligned without using a long-lived personal access token.
 
-for both:
+PyPI still requires the one-time Trusted Publisher setup documented in [publishing.md](publishing.md).
 
-```text
-linux/amd64
-linux/arm64
-```
+## Published versions are immutable
 
-Prerelease versions publish only the explicit version tag. Stable releases also update `latest`.
+Do not replace a published version with different source or binaries.
 
-Container publication is independent from PyPI Trusted Publishing. A PyPI configuration failure does not prevent the separate GHCR workflow from publishing its image, and a GHCR failure does not change the Python release artifacts already attached to the GitHub Release.
+If a published build is wrong:
+
+1. fix the source
+2. bump `blacklight_security.__version__`
+3. add a changelog entry
+4. merge to `main`
+5. publish the new version
+
+The release system intentionally refuses to overwrite an existing published release.

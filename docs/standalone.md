@@ -103,9 +103,12 @@ The script:
 
 `.github/workflows/standalone.yml` builds and smoke-tests standalone archives on:
 
-- `ubuntu-latest`
-- `windows-latest`
-- `macos-latest`
+- `ubuntu-latest` (Linux x64)
+- `ubuntu-24.04-arm` (Linux ARM64)
+- `windows-latest` (Windows x64)
+- `windows-11-arm` (Windows ARM64)
+- `macos-15-intel` (macOS Intel/x64)
+- `macos-latest` (macOS ARM64)
 
 The workflow runs on relevant pull requests, relevant pushes to `main`, and manual dispatch.
 
@@ -113,7 +116,7 @@ This catches platform-specific freezing/import failures before a tagged release 
 
 ## Versioned release integration
 
-When a version tag is pushed, `.github/workflows/github-release.yml`:
+For prereleases, a new version reaching `main` automatically runs `.github/workflows/github-release.yml`. Stable versions use an explicit version tag. The workflow:
 
 1. validates the release tag/version/changelog/main ancestry
 2. builds the Python wheel and source distribution
@@ -121,7 +124,7 @@ When a version tag is pushed, `.github/workflows/github-release.yml`:
 4. smoke-tests each standalone binary on the OS that built it
 5. downloads all release artifacts into the release-preparation job
 6. generates one `SHA256SUMS` file
-7. attaches everything to the draft GitHub Release
+7. publishes prerelease assets immediately for alpha/beta/RC versions, or attaches them to a draft for stable releases
 
 The PyPI workflow is intentionally restricted to files beginning with:
 

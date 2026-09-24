@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, ProfileNotFound
 
 from blacklight_security import __version__
+from blacklight_security.analyst import AnalystError, load_report, run_external_analyst
 from blacklight_security.coverage import evaluate_coverage_gate
 from blacklight_security.html_reporting import render_html
 from blacklight_security.policy import evaluate_policy
@@ -15,6 +16,7 @@ from blacklight_security.registry import scanner_names
 from blacklight_security.reporting import render_console, render_json
 from blacklight_security.runner import ScanResult, ScanRunner
 from blacklight_security.scanners.docker import DockerScanTarget
+from blacklight_security.scanners.kubernetes import KubernetesScanTarget
 
 
 def _add_report_options(parser: argparse.ArgumentParser) -> None:
@@ -77,6 +79,51 @@ def build_parser() -> argparse.ArgumentParser:
         help="Dockerfile or project directory to scan (default: current directory)",
     )
     _add_report_options(docker)
+
+    kubernetes = providers.add_parser(
+        "kubernetes",
+        aliases=["k8s"],
+        help="Scan local Kubernetes manifests",
+    )
+    kubernetes.add_argument(
+        "--service",
+        choices=["all", *scanner_names("kubernetes")],
+        default="all",
+        help="Kubernetes scanner to run (default: all)",
+    )
+    kubernetes.add_argument(
+        "--path",
+        type=Path,
+        default=Path("."),
+        help="Manifest file or project directory to scan (default: current directory)",
+    )
+    _add_report_options(kubernetes)
+
+    analyze = commands.add_parser(
+        "analyze",
+        help="Send a saved Blacklight JSON report to an optional external analyst",
+    )
+    analyze.add_argument("--input", type=Path, required=True, help="Blacklight JSON report")
+    analyze.add_argument(
+        "--command",
+        dest="analyst_command",
+        required=True,
+        help="Analyst executable or command name",
+    )
+    analyze.add_argument(
+        "--arg",
+        action="append",
+        default=[],
+        dest="analyst_args",
+        help="Argument passed to the analyst command; repeat as needed",
+    )
+    analyze.add_argument(
+        "--timeout",
+        type=int,
+        default=60,
+        help="Analyst timeout in seconds, 1-600 (default: 60)",
+    )
+    analyze.add_argument("--output", type=Path, help="Write analyst output to a file")
 
     return parser
 
@@ -165,6 +212,37 @@ def _run_docker(args: argparse.Namespace) -> int:
     return _finish_scan(args, result)
 
 
+def _run_kubernetes(args: argparse.Namespace) -> int:
+    if not _validate_output_args(args):
+        return 2
+
+    target = KubernetesScanTarget(args.path)
+    result = ScanRunner("kubernetes", target).run(args.service)
+    return _finish_scan(args, result)
+
+
+def _run_analyze(args: argparse.Namespace) -> int:
+    try:
+        payload = load_report(args.input)
+        output = run_external_analyst(
+            payload,
+            command=args.analyst_command,
+            arguments=args.analyst_args,
+            timeout_seconds=args.timeout,
+        )
+    except AnalystError as error:
+        print(f"Blacklight analyst error: {error}", file=sys.stderr)
+        return 2
+
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(output + "\n", encoding="utf-8")
+        print(f"Analyst output written to {args.output}")
+    else:
+        print(output)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -173,6 +251,10 @@ def main(argv: list[str] | None = None) -> int:
         return _run_aws(args)
     if args.command == "scan" and args.provider == "docker":
         return _run_docker(args)
+    if args.command == "scan" and args.provider in {"kubernetes", "k8s"}:
+        return _run_kubernetes(args)
+    if args.command == "analyze":
+        return _run_analyze(args)
 
     parser.error("Unsupported command")
     return 2

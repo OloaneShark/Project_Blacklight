@@ -95,36 +95,24 @@ The normal CI workflow performs these package checks automatically and smoke-tes
 
 GitHub Release preparation and PyPI publishing are intentionally separated.
 
-Push the exact version tag after the release changes are merged into `main`:
+For alpha, beta, and release-candidate versions, a new package version reaching `main` automatically builds and publishes the GitHub prerelease. The PyPI workflow then runs after the successful `Prepare GitHub Release` workflow completes.
 
-```bash
-git tag v0.1.0a18
-git push origin v0.1.0a18
-```
-
-`.github/workflows/github-release.yml` validates the tag, confirms the tagged commit is contained in `main`, checks the changelog, builds and validates the wheel/source distribution, smoke-tests the wheel, creates SHA-256 checksums, and prepares a **draft** GitHub Release with those artifacts attached.
-
-Review that draft and manually click **Publish release**.
-
-That human publish action triggers:
-
-```text
-.github/workflows/release.yml
-```
+Stable versions retain the explicit tag + human release-review path documented in [docs/releases.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/releases.md).
 
 The PyPI workflow:
 
-1. checks out the exact published release ref
-2. verifies the release tag matches `blacklight_security.__version__`
-3. downloads only the Python wheel and source distribution attached to the GitHub Release
-4. ignores standalone Windows/Linux/macOS archives by using the `project_blacklight_security-` filename prefix
-5. verifies the expected versioned artifact names
-6. runs `twine check` against those reviewed Python artifacts
-7. passes the validated distributions to the isolated publish job
-8. requests a short-lived PyPI credential through GitHub OIDC
-9. publishes through `pypa/gh-action-pypi-publish`
+1. resolves the released package version
+2. downloads only the Python wheel and source distribution attached to the GitHub Release
+3. ignores standalone Windows/Linux/macOS archives by using the `project_blacklight_security-` filename prefix
+4. verifies the expected versioned artifact names
+5. runs `twine check` against those reviewed Python artifacts
+6. passes the validated distributions to the isolated publish job
+7. requests a short-lived PyPI credential through GitHub OIDC
+8. publishes through `pypa/gh-action-pypi-publish`
 
 Only the PyPI publish job receives `id-token: write`.
+
+The automated GitHub download release does not depend on PyPI being configured. If Trusted Publishing has not been activated yet, the PyPI job may fail while the GitHub standalone downloads remain published and usable.
 
 See [docs/releases.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/releases.md) for the complete versioned GitHub Release process.
 
