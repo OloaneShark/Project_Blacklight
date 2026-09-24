@@ -8,8 +8,16 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QObject, QThread, Qt, Signal, QSize
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtCore import QObject, QPointF, QRectF, QThread, Qt, Signal
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QIcon,
+    QPainter,
+    QPen,
+    QPixmap,
+    QPolygonF,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -28,7 +36,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSplitter,
     QStackedWidget,
-    QStyle,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -66,6 +73,82 @@ SEVERITY_COLORS = {
     Severity.INFO: "#175cd3",
     Severity.PASS: "#067647",
 }
+
+
+def _line_icon(kind: str) -> QIcon:
+    size = 18
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing, True)
+    pen = QPen(QColor("#3d3d39"))
+    pen.setWidthF(1.35)
+    pen.setCapStyle(Qt.RoundCap)
+    pen.setJoinStyle(Qt.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.NoBrush)
+
+    if kind == "home":
+        painter.drawPolyline(
+            QPolygonF(
+                [
+                    QPointF(3, 8),
+                    QPointF(9, 3),
+                    QPointF(15, 8),
+                ]
+            )
+        )
+        painter.drawRect(QRectF(5, 8, 8, 7))
+        painter.drawLine(QPointF(8, 15), QPointF(8, 11))
+        painter.drawLine(QPointF(10, 11), QPointF(10, 15))
+    elif kind == "new":
+        painter.drawRoundedRect(QRectF(3, 3, 12, 12), 2, 2)
+        painter.drawLine(QPointF(9, 5.8), QPointF(9, 12.2))
+        painter.drawLine(QPointF(5.8, 9), QPointF(12.2, 9))
+    elif kind == "targets":
+        for x, y in ((3, 3), (10, 3), (3, 10), (10, 10)):
+            painter.drawRoundedRect(QRectF(x, y, 5, 5), 1, 1)
+    elif kind == "findings":
+        painter.drawPolygon(
+            QPolygonF(
+                [
+                    QPointF(9, 2.8),
+                    QPointF(15.2, 14.5),
+                    QPointF(2.8, 14.5),
+                ]
+            )
+        )
+        painter.drawLine(QPointF(9, 6.4), QPointF(9, 10.4))
+        painter.drawPoint(QPointF(9, 12.6))
+    elif kind == "reports":
+        painter.drawRoundedRect(QRectF(4, 2.5, 10, 13), 1.4, 1.4)
+        painter.drawLine(QPointF(6.3, 6), QPointF(11.8, 6))
+        painter.drawLine(QPointF(6.3, 9), QPointF(11.8, 9))
+        painter.drawLine(QPointF(6.3, 12), QPointF(10.2, 12))
+    elif kind == "more":
+        for x in (5, 9, 13):
+            painter.drawEllipse(QPointF(x, 9), 0.8, 0.8)
+    elif kind == "search":
+        painter.drawEllipse(QRectF(3, 3, 8.5, 8.5))
+        painter.drawLine(QPointF(10.3, 10.3), QPointF(14.5, 14.5))
+    elif kind == "settings":
+        painter.drawEllipse(QRectF(5.3, 5.3, 7.4, 7.4))
+        painter.drawEllipse(QRectF(7.8, 7.8, 2.4, 2.4))
+        for point in (
+            (9, 2.2, 9, 4.2),
+            (9, 13.8, 9, 15.8),
+            (2.2, 9, 4.2, 9),
+            (13.8, 9, 15.8, 9),
+        ):
+            painter.drawLine(QPointF(point[0], point[1]), QPointF(point[2], point[3]))
+    elif kind == "info":
+        painter.drawEllipse(QRectF(2.8, 2.8, 12.4, 12.4))
+        painter.drawLine(QPointF(9, 7.8), QPointF(9, 12.1))
+        painter.drawPoint(QPointF(9, 5.7))
+
+    painter.end()
+    return QIcon(pixmap)
 
 
 class ScanWorker(QObject):
@@ -238,8 +321,7 @@ class BlacklightDesktop(QMainWindow):
 
         search = QPushButton("")
         search.setObjectName("SidebarIconButton")
-        search.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView))
-        search.setIconSize(QSize(15, 15))
+        search.setIcon(_line_icon("search"))
         search.setToolTip("Search is coming later")
         brand_row.addWidget(search)
 
@@ -247,20 +329,19 @@ class BlacklightDesktop(QMainWindow):
         layout.addSpacing(18)
 
         nav_specs = (
-            ("Home", 0, QStyle.StandardPixmap.SP_DirHomeIcon),
-            ("New scan", 2, QStyle.StandardPixmap.SP_FileDialogNewFolder),
-            ("Targets", 1, QStyle.StandardPixmap.SP_ComputerIcon),
-            ("Findings", 3, QStyle.StandardPixmap.SP_MessageBoxWarning),
-            ("Reports", 4, QStyle.StandardPixmap.SP_FileIcon),
+            ("Home", 0, "home"),
+            ("New scan", 2, "new"),
+            ("Targets", 1, "targets"),
+            ("Findings", 3, "findings"),
+            ("Reports", 4, "reports"),
         )
 
         self.nav_buttons: list[tuple[int, QPushButton]] = []
-        for label, page_index, icon in nav_specs:
+        for label, page_index, icon_name in nav_specs:
             button = QPushButton(label)
             button.setObjectName("NavButton")
             button.setCheckable(True)
-            button.setIcon(self.style().standardIcon(icon))
-            button.setIconSize(QSize(16, 16))
+            button.setIcon(_line_icon(icon_name))
             button.clicked.connect(
                 lambda checked=False, i=page_index: self._set_page(i)
             )
@@ -269,8 +350,7 @@ class BlacklightDesktop(QMainWindow):
 
         more = QPushButton("More")
         more.setObjectName("NavButton")
-        more.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMenuButton))
-        more.setIconSize(QSize(16, 16))
+        more.setIcon(_line_icon("more"))
         more.clicked.connect(lambda: self._set_page(5))
         layout.addWidget(more)
 
@@ -309,8 +389,7 @@ class BlacklightDesktop(QMainWindow):
 
         settings = QPushButton("")
         settings.setObjectName("SidebarIconButton")
-        settings.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView))
-        settings.setIconSize(QSize(16, 16))
+        settings.setIcon(_line_icon("settings"))
         settings.clicked.connect(lambda: self._set_page(5))
         settings.setToolTip("Settings")
 
@@ -353,8 +432,7 @@ class BlacklightDesktop(QMainWindow):
 
         about = QPushButton("")
         about.setObjectName("TopIconButton")
-        about.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation))
-        about.setIconSize(QSize(16, 16))
+        about.setIcon(_line_icon("info"))
         about.setToolTip("About Project Blacklight")
         about.clicked.connect(lambda: self._set_page(5))
         layout.addWidget(about)
@@ -626,6 +704,7 @@ class BlacklightDesktop(QMainWindow):
         self.findings_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.findings_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.findings_table.setAlternatingRowColors(True)
+        self.findings_table.verticalHeader().setVisible(False)
         self.findings_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.findings_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.findings_table.itemSelectionChanged.connect(self._finding_selected)
