@@ -122,7 +122,9 @@ jobs:
   publish:
     name: publish distributions to PyPI
     needs: prepare
-    if: needs.prepare.outputs.should_publish == 'true'
+    if: >
+      needs.prepare.outputs.should_publish == 'true' &&
+      vars.PYPI_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
