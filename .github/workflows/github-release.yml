@@ -2,18 +2,24 @@ name: Prepare GitHub Release
 
 on:
   push:
+    branches: [main]
     tags:
       - "v*"
 
 jobs:
   validate:
-    name: validate release tag
+    name: validate release source
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      should_release: ${{ steps.release.outputs.should_release }}
+      release_tag: ${{ steps.release.outputs.release_tag }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      source_sha: ${{ steps.release.outputs.source_sha }}
 
     steps:
-      - name: Check out tagged source
+      - name: Check out release source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -23,20 +29,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify tag, version, changelog, and main ancestry
+      - name: Resolve and validate release source
+        id: release
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git fetch origin main
+          git fetch origin main --tags
 
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "Release tag $GITHUB_REF_NAME does not point to a commit contained in main."
+          PACKAGE_VERSION="$(python -c 'from blacklight_security import __version__; print(__version__)')"
+          TAG_NAME="v$PACKAGE_VERSION"
+          SOURCE_SHA="$GITHUB_SHA"
+
+          if [[ "$GITHUB_REF" == refs/tags/* ]] && [ "$GITHUB_REF_NAME" != "$TAG_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION."
             exit 1
           fi
 
-          PACKAGE_VERSION="$(python -c 'from blacklight_security import __version__; print(__version__)')"
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION."
+          if ! git merge-base --is-ancestor "$SOURCE_SHA" origin/main; then
+            echo "Release source $SOURCE_SHA is not contained in main."
             exit 1
           fi
 
@@ -59,16 +70,41 @@ jobs:
             exit 1
           fi
 
+          PRERELEASE=false
+          if [[ "$PACKAGE_VERSION" =~ (a|b|rc)[0-9]+$ ]]; then
+            PRERELEASE=true
+          fi
+
+          if [[ "$GITHUB_REF" == refs/heads/main ]] && [ "$PRERELEASE" != "true" ]; then
+            echo "Stable versions require an explicit version tag; skipping automatic release."
+            SHOULD_RELEASE=false
+          elif gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists; skipping duplicate preparation."
+            SHOULD_RELEASE=false
+          else
+            SHOULD_RELEASE=true
+          fi
+
+          {
+            echo "should_release=$SHOULD_RELEASE"
+            echo "release_tag=$TAG_NAME"
+            echo "prerelease=$PRERELEASE"
+            echo "source_sha=$SOURCE_SHA"
+          } >> "$GITHUB_OUTPUT"
+
   build-python:
     name: build Python distributions
     needs: validate
+    if: needs.validate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Check out tagged source
+      - name: Check out release source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -103,6 +139,7 @@ jobs:
   build-standalone:
     name: standalone (${{ matrix.os }})
     needs: validate
+    if: needs.validate.outputs.should_release == 'true'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -118,8 +155,10 @@ jobs:
           - macos-15-intel
 
     steps:
-      - name: Check out tagged source
+      - name: Check out release source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -140,18 +179,22 @@ jobs:
           if-no-files-found: error
 
   prepare-release:
-    name: prepare draft GitHub Release
+    name: publish alpha or prepare stable release
     needs:
+      - validate
       - build-python
       - build-standalone
+    if: needs.validate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: write
 
     steps:
-      - name: Check out tagged source
+      - name: Check out release source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -177,27 +220,19 @@ jobs:
           cd release-assets
           sha256sum * > SHA256SUMS
 
-      - name: Create or refresh draft GitHub Release
+      - name: Create GitHub Release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate.outputs.release_tag }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+          SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
         run: |
           PACKAGE_VERSION="$(python -c 'from blacklight_security import __version__; print(__version__)')"
           TITLE="Project Blacklight v$PACKAGE_VERSION"
 
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            IS_DRAFT="$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq '.isDraft')"
-            if [ "$IS_DRAFT" != "true" ]; then
-              echo "Release $GITHUB_REF_NAME already exists and is published; refusing to overwrite it."
-              exit 1
-            fi
-
-            gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
+          if [ "$PRERELEASE" = "true" ]; then
+            gh release create "$RELEASE_TAG"               release-assets/*               --target "$SOURCE_SHA"               --prerelease               --generate-notes               --title "$TITLE"
           else
-            EXTRA_FLAGS=()
-            if [[ "$PACKAGE_VERSION" =~ (a|b|rc)[0-9]+$ ]]; then
-              EXTRA_FLAGS+=(--prerelease)
-            fi
-
-            gh release create "$GITHUB_REF_NAME"               release-assets/*               --draft               --generate-notes               --title "$TITLE"               "${EXTRA_FLAGS[@]}"
+            gh release create "$RELEASE_TAG"               release-assets/*               --target "$SOURCE_SHA"               --draft               --generate-notes               --title "$TITLE"
           fi
