@@ -104,7 +104,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Send a saved Blacklight JSON report to an optional external analyst",
     )
     analyze.add_argument("--input", type=Path, required=True, help="Blacklight JSON report")
-    analyze.add_argument("--command", required=True, help="Analyst executable or command name")
+    analyze.add_argument(
+        "--command",
+        dest="analyst_command",
+        required=True,
+        help="Analyst executable or command name",
+    )
     analyze.add_argument(
         "--arg",
         action="append",
@@ -221,7 +226,7 @@ def _run_analyze(args: argparse.Namespace) -> int:
         payload = load_report(args.input)
         output = run_external_analyst(
             payload,
-            command=args.command,
+            command=args.analyst_command,
             arguments=args.analyst_args,
             timeout_seconds=args.timeout,
         )
