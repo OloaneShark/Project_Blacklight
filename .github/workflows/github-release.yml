@@ -5,6 +5,12 @@ on:
     branches: [main]
     tags:
       - "v*"
+    paths:
+      - "blacklight_security/__init__.py"
+      - "CHANGELOG.md"
+      - "pyproject.toml"
+      - ".github/workflows/github-release.yml"
+      - "tools/build_standalone.py"
 
 jobs:
   validate:
