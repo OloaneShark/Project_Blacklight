@@ -60,10 +60,7 @@ jobs:
 
       - name: Capture desktop screenshots
         if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          $env:QT_QPA_PLATFORM = "offscreen"
-          python tools/capture_desktop_screenshots.py
+        run: python tools/capture_desktop_screenshots.py
 
       - name: Upload desktop screenshots
         if: matrix.os == 'windows-latest'
