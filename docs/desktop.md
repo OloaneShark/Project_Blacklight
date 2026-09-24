@@ -9,22 +9,33 @@ The first desktop release targets Windows and is packaged as a native one-file e
 The desktop layout follows the same broad pattern as modern local developer/security workspaces:
 
 ```text
-BLACKLIGHT
-├── Dashboard
-├── Scan
+blacklight
+├── Home
+├── New scan
+├── Targets
 ├── Findings
 ├── Reports
-└── Settings
+└── More
 ```
 
-The Dashboard exposes target cards for:
+The Home screen uses a centered scan launcher with a slim target selector in the top bar. The sidebar provides the primary workspace navigation, recent scans, and local-engine status. Targets currently include:
 
 - AWS Account
 - Docker Project
 - Kubernetes Manifests
 - Server / SSH (visible as the next product phase, not falsely enabled)
 
-The UI is intentionally dark, sharp-edged, local-first, and focused on evidence rather than decorative dashboard widgets.
+The desktop is intentionally **light mode only** for now. Its layout uses a clean local-tool workspace: white main canvas, narrow light sidebar, subtle separators, compact navigation, a focused central scan launcher, and restrained mint accents. Blacklight keeps its own branding and security workflow rather than copying another product's screens verbatim.
+
+## Home launcher
+
+The Home screen is the fastest path into a scan:
+
+1. choose AWS, Docker, or Kubernetes from the top target selector or launcher controls
+2. optionally provide an AWS profile or local project/manifest path
+3. press the circular run control
+
+For gate configuration, region overrides, and other scan settings, open **New scan**.
 
 ## Run a scan
 
