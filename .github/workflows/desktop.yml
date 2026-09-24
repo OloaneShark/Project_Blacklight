@@ -58,6 +58,21 @@ jobs:
           python -m blacklight_security.desktop.app --smoke-test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Capture desktop screenshots
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          python tools/capture_desktop_screenshots.py
+
+      - name: Upload desktop screenshots
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blacklight-desktop-screenshots
+          path: desktop-screenshots/*.png
+          if-no-files-found: error
+
       - name: Build and smoke-test desktop executable
         run: python tools/build_desktop.py
 
