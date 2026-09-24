@@ -2,7 +2,6 @@ from __future__ import annotations
 
 DESKTOP_STYLESHEET = """
 QWidget {
-    background: #ffffff;
     color: #171717;
     font-family: "Segoe UI";
     font-size: 13px;
