@@ -45,6 +45,16 @@ If the PyPI project already exists, add the same GitHub Actions Trusted Publishe
 
 A pending publisher does not reserve the package name. The name becomes established only when the first matching publish succeeds.
 
+### 3. Enable PyPI publication in GitHub
+
+After the Trusted Publisher is configured, create this repository Actions variable:
+
+```text
+PYPI_PUBLISH_ENABLED=true
+```
+
+Until that variable is explicitly set to `true`, Blacklight still validates the wheel/source distribution and publishes the GitHub standalone downloads, but the final PyPI upload job is skipped. This prevents expected Trusted Publishing configuration failures from making normal GitHub prereleases look broken.
+
 ## Release prerequisites
 
 Before publishing:
@@ -112,7 +122,7 @@ The PyPI workflow:
 
 Only the PyPI publish job receives `id-token: write`.
 
-The automated GitHub download release does not depend on PyPI being configured. If Trusted Publishing has not been activated yet, the PyPI job may fail while the GitHub standalone downloads remain published and usable.
+The automated GitHub download release does not depend on PyPI being configured. PyPI upload remains disabled until both the Trusted Publisher and `PYPI_PUBLISH_ENABLED=true` are configured.
 
 See [docs/releases.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/releases.md) for the complete versioned GitHub Release process.
 
