@@ -204,6 +204,8 @@ class BlacklightDesktop(QMainWindow):
 
         content_layout.addWidget(self.pages, 1)
         root_layout.addWidget(content, 1)
+        self.top_target_combo.setCurrentIndex(0)
+        self._update_home_provider(None)
         self._set_page(0)
 
     def _build_sidebar(self) -> QWidget:
@@ -236,7 +238,7 @@ class BlacklightDesktop(QMainWindow):
 
         search = QPushButton("")
         search.setObjectName("SidebarIconButton")
-        search.setIcon(self.style().standardIcon(QStyle.SP_FileDialogContentsView))
+        search.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView))
         search.setIconSize(QSize(15, 15))
         search.setToolTip("Search is coming later")
         brand_row.addWidget(search)
@@ -245,11 +247,11 @@ class BlacklightDesktop(QMainWindow):
         layout.addSpacing(18)
 
         nav_specs = (
-            ("Home", 0, QStyle.SP_DirHomeIcon),
-            ("New scan", 2, QStyle.SP_FileDialogNewFolder),
-            ("Targets", 1, QStyle.SP_ComputerIcon),
-            ("Findings", 3, QStyle.SP_MessageBoxWarning),
-            ("Reports", 4, QStyle.SP_FileIcon),
+            ("Home", 0, QStyle.StandardPixmap.SP_DirHomeIcon),
+            ("New scan", 2, QStyle.StandardPixmap.SP_FileDialogNewFolder),
+            ("Targets", 1, QStyle.StandardPixmap.SP_ComputerIcon),
+            ("Findings", 3, QStyle.StandardPixmap.SP_MessageBoxWarning),
+            ("Reports", 4, QStyle.StandardPixmap.SP_FileIcon),
         )
 
         self.nav_buttons: list[tuple[int, QPushButton]] = []
@@ -267,7 +269,7 @@ class BlacklightDesktop(QMainWindow):
 
         more = QPushButton("More")
         more.setObjectName("NavButton")
-        more.setIcon(self.style().standardIcon(QStyle.SP_TitleBarMenuButton))
+        more.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMenuButton))
         more.setIconSize(QSize(16, 16))
         more.clicked.connect(lambda: self._set_page(5))
         layout.addWidget(more)
@@ -307,7 +309,7 @@ class BlacklightDesktop(QMainWindow):
 
         settings = QPushButton("")
         settings.setObjectName("SidebarIconButton")
-        settings.setIcon(self.style().standardIcon(QStyle.SP_FileDialogDetailedView))
+        settings.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView))
         settings.setIconSize(QSize(16, 16))
         settings.clicked.connect(lambda: self._set_page(5))
         settings.setToolTip("Settings")
@@ -351,7 +353,7 @@ class BlacklightDesktop(QMainWindow):
 
         about = QPushButton("")
         about.setObjectName("TopIconButton")
-        about.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
+        about.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation))
         about.setIconSize(QSize(16, 16))
         about.setToolTip("About Project Blacklight")
         about.clicked.connect(lambda: self._set_page(5))
@@ -925,11 +927,15 @@ class BlacklightDesktop(QMainWindow):
         button.clicked.connect(lambda: self._set_page(3))
         self.recents_box.insertWidget(0, button)
 
-        while self.recents_box.count() > 5:
-            item = self.recents_box.takeAt(self.recents_box.count() - 1)
-            widget = item.widget()
-            if widget is not None and widget is not self.recents_placeholder:
-                widget.deleteLater()
+        recent_buttons = [
+            self.recents_box.itemAt(index).widget()
+            for index in range(self.recents_box.count())
+            if self.recents_box.itemAt(index).widget() is not None
+            and self.recents_box.itemAt(index).widget().objectName() == "RecentButton"
+        ]
+        for old_button in recent_buttons[4:]:
+            self.recents_box.removeWidget(old_button)
+            old_button.deleteLater()
 
     def _scan_failed(self, message: str) -> None:
         self.scan_status.setText("Scan failed.")
