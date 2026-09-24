@@ -27,3 +27,12 @@ def test_builtin_docker_scanner_is_registered():
     assert len(specs) == 1
     assert specs[0].provider == "docker"
     assert specs[0].name == "dockerfile"
+
+
+def test_builtin_kubernetes_scanner_is_registered():
+    assert scanner_names("kubernetes") == ["manifest"]
+
+    specs = scanner_specs("kubernetes", "manifest")
+    assert len(specs) == 1
+    assert specs[0].provider == "kubernetes"
+    assert specs[0].name == "manifest"
