@@ -2,6 +2,28 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.22] - 2026-09-24
+
+### Added
+
+- Deterministic Kubernetes workload-manifest scanning through `blacklight scan kubernetes --path <path>` and the `k8s` alias.
+- Static Kubernetes checks for privileged containers, explicit UID 0, explicit privilege escalation, host namespace sharing, hostPath volumes, ALL Linux capabilities, Unconfined seccomp, hostPort bindings, mutable/implicit image tags, and literal secret-like environment values.
+- Kubernetes support for Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, ReplicationControllers, Jobs, CronJobs, and Kubernetes List items.
+- Secret-value redaction in Kubernetes environment findings.
+- Kubernetes scanner/CLI test coverage and dedicated Kubernetes scanning documentation.
+- Optional external analyst protocol through `blacklight analyze`, passing completed Blacklight JSON reports over stdin to an explicitly selected command with `shell=False` and a bounded timeout.
+- Analyst integration tests and documentation.
+- End-to-end architecture documentation describing AWS, Docker, Kubernetes, findings, risk, coverage, reporting, distribution, and future target expansion.
+- Automatic public GitHub prereleases for validated alpha/beta/RC versions reaching `main`.
+- Automated prerelease handoff paths for PyPI Trusted Publishing and GHCR through successful release-workflow completion.
+
+### Changed
+
+- The original Blacklight 0.1 core roadmap is now marked complete.
+- README architecture and usage now include Kubernetes scanning and optional external analyst integrations.
+- Release documentation distinguishes automatic public prereleases from human-reviewed stable releases.
+- Standalone embedded usage documentation now lists AWS, Docker, and Kubernetes scan commands.
+
 ## [0.1.0-alpha.21] - 2026-09-23
 
 ### Added
