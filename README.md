@@ -2,15 +2,17 @@
 
 **Project Blacklight is an open-source cloud and container security scanning and risk-visibility toolkit.**
 
-Blacklight reveals security weaknesses that are easy to miss in normal cloud configuration noise. Detection is deterministic: provider APIs and explicit security checks decide what is wrong. AI may be added later as an optional analyst layer for correlation, prioritization, explanation, and remediation assistance, but Blacklight does not require AI to detect security problems.
+Blacklight reveals security weaknesses that are easy to miss in cloud and workload configuration noise. Detection is deterministic: provider APIs and explicit security checks decide what is wrong. An optional external analyst interface can explain completed Blacklight JSON reports, but analyst output never creates, suppresses, or changes security findings.
 
 > Status: **early alpha / active development**
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, and local Dockerfiles. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, and local Kubernetes workload manifests. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
 The Dockerfile scanner statically detects root runtime configuration, implicit/latest base-image tags, secret-like values embedded through ARG/ENV, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. It does not require a Docker daemon. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
+
+The Kubernetes scanner statically checks workload manifests for privileged containers, explicit UID 0, privilege escalation, host namespace sharing, hostPath volumes, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values. It does not require cluster credentials. See [docs/kubernetes-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/kubernetes-scanning.md).
 
 The IAM scanner checks root MFA, long-lived access-key age/usage, policies attached directly to IAM users, groups, and roles, and IAM role trust policies. It flags unconditional identity-policy `Allow` statements that grant both `Action: "*"` and `Resource: "*"`, plus role trust statements with a wildcard principal and STS assume-role action but no condition. These checks report directly observed policy evidence; they do not claim to calculate final effective permissions or every prerequisite for successful role assumption.
 
@@ -40,7 +42,7 @@ The installers select the newest published GitHub Release for the current OS/arc
 
 Manual downloads are also available from [GitHub Releases](https://github.com/OloaneShark/Project_Blacklight/releases) using stable asset names such as `Project-Blacklight-Windows-x64.zip`.
 
-> A published GitHub Release is required before these installer commands can download Blacklight. The repository currently has the release automation in place; the next release tag activates the public downloads.
+Alpha versions are automatically packaged as public GitHub prereleases after a new version reaches `main` and passes the release build. Stable versions remain reviewable releases.
 
 ## Install from source
 
@@ -134,6 +136,14 @@ Scan one Dockerfile:
 blacklight scan docker --path ./Dockerfile
 ```
 
+Scan Kubernetes manifests:
+
+```bash
+blacklight scan kubernetes --path .
+# short alias
+blacklight scan k8s --path .
+```
+
 Scan one service:
 
 ```bash
@@ -215,10 +225,23 @@ blacklight scan aws --fail-on high --require-full-coverage --format html --outpu
 
 Blacklight writes the report before returning the final gate or coverage exit code, so failed pipeline runs can still retain the report as an artifact.
 
+
+## Optional analyst integrations
+
+A completed Blacklight JSON report can be handed to an explicitly selected external analyst program:
+
+```bash
+blacklight analyze --input reports/aws-scan.json --command python --arg my_analyst.py
+```
+
+Blacklight sends the JSON report over stdin and receives explanation over stdout. The analyst layer is out-of-process, uses `shell=False`, and cannot alter Blacklight's original findings or scan exit code. See [docs/analyst-integrations.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/analyst-integrations.md).
+
+
 ## Architecture
 
 ```text
 blacklight_security/
+├── analyst.py
 ├── cli.py
 ├── coverage.py
 ├── html_reporting.py
@@ -238,22 +261,31 @@ blacklight_security/
     │   ├── rds.py
     │   ├── lambda_functions.py
     │   └── guardduty.py
-    └── docker/
-        └── dockerfile.py
+    ├── docker/
+    │   └── dockerfile.py
+    └── kubernetes/
+        └── manifests.py
 ```
 
 The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, isolates per-scanner AWS API failures, tracks coverage, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes successfully observed security findings after detection. The coverage layer describes how completely the selected scope was inspected without changing the risk score. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
 
 The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_flask/` for history and reference. It is not the current Blacklight entry point.
 
-## Roadmap
+## Roadmap status
 
-Next priorities:
+The original Blacklight 0.1 core roadmap is implemented: deterministic AWS scanning, Dockerfile scanning, Kubernetes manifest scanning, shared risk/coverage/gates, JSON/HTML reporting, contributor documentation, wheel/sdist packaging, native standalone downloads, Docker distribution, and an optional external analyst interface.
 
-- Deeper AWS checks and additional AWS services
-- First PyPI release after Trusted Publisher activation
-- Deeper Docker security checks and Kubernetes security scanners
-- Optional pluggable AI analyst integrations
+Future expansion is intentionally a new phase rather than unfinished core work:
+
+- live server/SSH scanning with read-only target profiles
+- deeper AWS/Docker/Kubernetes checks
+- live Kubernetes cluster and Docker-daemon inspection
+- additional cloud providers
+- desktop GUI around the existing native executable
+- signed/notarized Windows and macOS binaries
+- richer third-party scanner/analyst extension points
+
+See [docs/how-blacklight-works.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/how-blacklight-works.md) for the end-to-end architecture.
 
 ## Contributing
 
