@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from blacklight_security.desktop.controller import DesktopScanRequest, run_scan, write_report
 from blacklight_security.models import Severity
 
