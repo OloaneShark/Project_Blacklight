@@ -2,6 +2,19 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.24] - 2026-09-24
+
+### Changed
+
+- Rebuilt Blacklight Desktop as a light-mode-only workspace with a white main canvas, slim light sidebar, subtle dividers, restrained mint accents, and much more whitespace.
+- Replaced the card-heavy dashboard with a centered Home launcher built around the primary action: choosing a target and starting a security scan.
+- Added a persistent top target selector modeled around modern local desktop-tool navigation.
+- Reorganized sidebar navigation to Home, New scan, Targets, Findings, Reports, and More, with local-engine status and in-session recent scans.
+- Reworked Targets into compact horizontal rows rather than large dashboard cards.
+- Restyled scan forms, findings, metrics, report export, controls, tables, and status elements for the light desktop system.
+- Added a direct Home scan path while retaining the advanced New scan form for regions, severity gates, and full-coverage settings.
+- Desktop remains local-first and still uses the existing deterministic Blacklight engine, findings, risk, coverage, and report layers.
+
 ## [0.1.0-alpha.23] - 2026-09-24
 
 ### Added

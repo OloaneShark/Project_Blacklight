@@ -11,6 +11,8 @@ on:
       - "pyproject.toml"
       - "tools/build_desktop.py"
       - "tools/desktop_entry.py"
+      - "tools/capture_desktop_screenshots.py"
+      - "tools/capture_desktop_screenshots.py"
       - ".github/workflows/desktop.yml"
       - ".github/workflows/github-release.yml"
   push:
@@ -57,6 +59,18 @@ jobs:
           $env:QT_QPA_PLATFORM = "offscreen"
           python -m blacklight_security.desktop.app --smoke-test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Capture rendered desktop screenshots
+        if: matrix.os == 'windows-latest'
+        run: python tools/capture_desktop_screenshots.py
+
+      - name: Upload rendered desktop screenshots
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blacklight-desktop-light-ui
+          path: desktop-screenshots/*.png
+          if-no-files-found: error
 
       - name: Build and smoke-test desktop executable
         run: python tools/build_desktop.py
