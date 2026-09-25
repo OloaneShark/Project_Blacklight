@@ -6,6 +6,15 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Changed
 
+- Restored the original dark Blacklight Desktop design from the 0.1.0a23 line.
+- Removed the bottom-left `LOCAL SECURITY ENGINE` footer from the sidebar for a cleaner layout.
+- Kept the existing AWS, Docker, Kubernetes, findings, reports, background scanning, and desktop executable behavior unchanged.
+- The light workspace experiment from 0.1.0a24 is no longer the active desktop design.
+
+## [0.1.0-alpha.25] - 2026-09-24
+
+### Changed
+
 - Restored the Blacklight Desktop interface to the previous dark security-workspace design from `0.1.0a23`.
 - Removed the experimental light/Unsloth-style shell introduced in `0.1.0a24`.
 - Restored the original Dashboard, Targets, Scan, Findings, Reports, and Settings navigation.
