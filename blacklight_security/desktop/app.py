@@ -219,11 +219,6 @@ class BlacklightDesktop(QMainWindow):
             self.nav_buttons.append(button)
 
         layout.addStretch()
-
-        engine = QLabel("LOCAL SECURITY ENGINE")
-        engine.setObjectName("Muted")
-        layout.addWidget(engine)
-
         return sidebar
 
     def _page_shell(self, title: str, subtitle: str) -> tuple[QWidget, QVBoxLayout]:

@@ -2,6 +2,14 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [0.1.0-alpha.26] - 2026-09-24
+
+### Changed
+
+- Removed the bottom-left `LOCAL SECURITY ENGINE` footer from the restored dark Blacklight Desktop sidebar.
+- Kept the 0.1.0a25 dark Dashboard, Targets, Scan, Findings, Reports, and Settings design unchanged.
+- Kept AWS, Docker, Kubernetes, background scanning, findings, reports, and desktop executable behavior unchanged.
+
 ## [0.1.0-alpha.25] - 2026-09-24
 
 ### Changed
