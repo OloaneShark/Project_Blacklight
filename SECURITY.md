@@ -6,7 +6,7 @@ Project Blacklight scans infrastructure and therefore must be conservative with 
 
 Blacklight uses the standard AWS credential provider chain through `boto3`. Do not commit AWS keys, tokens, passwords, `.env` secrets, or captured customer data to this repository.
 
-For routine scanning, use a dedicated read-only or least-privilege identity whenever possible. The repository includes an example policy at `examples/aws/blacklight-readonly-policy.json`, with a permission breakdown in `docs/aws-permissions.md`.
+For routine scanning, use a dedicated read-only or least-privilege identity whenever possible. The repository includes an example policy at `examples/aws/blacklight-readonly-policy.json`, with credential setup in `docs/aws-credentials.md` and a permission breakdown in `docs/aws-permissions.md`.
 
 Avoid running Blacklight with `AdministratorAccess` when a narrower scanning identity can be used.
 

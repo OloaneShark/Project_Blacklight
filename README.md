@@ -22,54 +22,13 @@ Blacklight also performs deterministic risk assessment. Severity weights create 
 
 Risk and scan coverage are reported separately. Scanner `ERROR` findings do not add security-risk points, but they reduce confidence that the observed risk score represents the entire selected scan scope. Coverage is reported as `FULL`, `PARTIAL`, `LIMITED`, or `UNKNOWN`, with a corresponding deterministic risk-confidence label. See [docs/coverage-confidence.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/coverage-confidence.md).
 
-## Blacklight Desktop
+## Use from GitHub
 
-Project Blacklight now has a graphical Windows desktop front end built on the same deterministic engine as the CLI.
+Project Blacklight is maintained as a **source-only GitHub project**.
 
-The desktop app provides:
+There is no desktop application, native `.exe`, one-command installer, PyPI release flow, or hosted GHCR image to maintain.
 
-- a dark local security workspace
-- AWS / Docker / Kubernetes target selection
-- background scans that do not freeze the UI
-- risk and coverage overview
-- findings table with remediation and evidence
-- JSON and HTML export
-- a visible Server / SSH target slot for the next product phase
-
-Direct release assets are:
-
-```text
-Project-Blacklight-Desktop-Windows-x64.exe
-Project-Blacklight-Desktop-Windows-ARM64.exe
-```
-
-No Python installation is required. See [docs/desktop.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/desktop.md) and [GitHub Releases](https://github.com/OloaneShark/Project_Blacklight/releases).
-
-## Download / quick install
-
-Blacklight's standalone releases are designed to work like a normal downloadable CLI: no Python setup is required.
-
-macOS / Linux:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.sh | sh
-```
-
-Windows PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/OloaneShark/Project_Blacklight/main/install.ps1 | iex
-```
-
-The installers select the newest published GitHub Release for the current OS/architecture, verify the downloaded archive against `SHA256SUMS`, and install the standalone executable.
-
-Manual downloads are also available from [GitHub Releases](https://github.com/OloaneShark/Project_Blacklight/releases) using stable asset names such as `Project-Blacklight-Windows-x64.zip`.
-
-Alpha versions are automatically packaged as public GitHub prereleases after a new version reaches `main` and passes the release build. Stable versions remain reviewable releases.
-
-## Install from source
-
-PyPI publishing automation is prepared, but the first public release is **not live yet**. The remaining account-side step is configuring the PyPI Trusted Publisher for this repository and then publishing a matching GitHub Release.
+Users can either clone the repository:
 
 ```bash
 git clone https://github.com/OloaneShark/Project_Blacklight.git
@@ -77,67 +36,67 @@ cd Project_Blacklight
 python -m venv .venv
 ```
 
-Activate the virtual environment, then install Blacklight:
+or use GitHub's **Code → Download ZIP** option and extract the repository locally.
 
-```bash
+Activate the virtual environment, then install the checked-out source:
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 python -m pip install -e .
 ```
 
-For development:
+macOS / Linux:
+
+```bash
+source .venv/bin/activate
+python -m pip install -e .
+```
+
+For contributors:
 
 ```bash
 python -m pip install -e ".[dev]"
+pytest -q
+ruff check blacklight_security tests
 ```
-
-For local release-package validation:
-
-```bash
-python -m pip install -e ".[release]"
-python -m build
-python -m twine check dist/*
-```
-
-See [docs/releases.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/releases.md) for versioned GitHub Releases and [docs/publishing.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/publishing.md) for the PyPI Trusted Publishing procedure.
-
-## Standalone executables
-
-Versioned GitHub Releases build and smoke-test self-contained Blacklight executables for Windows, Linux, and macOS. These archives do not require a Python installation on the target machine.
-
-See [docs/standalone.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/standalone.md) for local build commands, release artifact names, checksum verification, and the current code-signing limitations.
-
-## Docker
-
-Project Blacklight also ships as a non-root multi-platform container image through GitHub Container Registry. Versioned releases publish Linux AMD64 and ARM64 images under:
-
-```text
-ghcr.io/oloaneshark/project-blacklight:<version>
-```
-
-The container preserves the normal Blacklight CLI and CI/CD exit codes and contains no AWS credentials. See [docs/docker.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker.md) for credentials, report mounts, local builds, image tags, and GHCR publishing details.
 
 ## AWS credentials and least privilege
 
-Blacklight uses the standard boto3/AWS credential chain. Do not hard-code credentials into the project.
+Blacklight uses boto3's standard AWS credential provider chain. **Do not put AWS keys in the repository.**
 
-For normal use, prefer a dedicated read-only/least-privilege scanning identity. Project Blacklight includes an example policy at:
+The recommended local setup is a dedicated AWS CLI profile using Blacklight's least-privilege read policy:
 
 ```text
 examples/aws/blacklight-readonly-policy.json
 ```
 
-The policy contains only the AWS API actions currently required by the built-in scanners. See [docs/aws-permissions.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/aws-permissions.md) for the permission breakdown and setup notes.
-
-Configure a profile for the scanning identity:
+Configure the profile:
 
 ```bash
 aws configure --profile blacklight-audit
 ```
 
-Then run:
+The AWS CLI asks for the access key ID, secret access key, default region, and output format, then stores that profile outside the Blacklight project in the normal AWS configuration files.
+
+Run Blacklight with it:
 
 ```bash
 blacklight scan aws --profile blacklight-audit
 ```
+
+If the organization uses AWS IAM Identity Center / SSO, that is even better because it avoids long-lived access keys:
+
+```bash
+aws configure sso --profile blacklight-audit
+aws sso login --profile blacklight-audit
+blacklight scan aws --profile blacklight-audit
+```
+
+Blacklight does **not** automatically load a project `.env` file. See [docs/aws-credentials.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/aws-credentials.md) for profiles, SSO, environment variables, IAM roles, credential locations, and why a project `.env` is not the preferred credential store.
+
+See [docs/aws-permissions.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/aws-permissions.md) for the exact read-only permission breakdown.
 
 ## Usage
 
@@ -296,7 +255,7 @@ The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_fl
 
 ## Roadmap status
 
-The original Blacklight 0.1 core roadmap is implemented: deterministic AWS scanning, Dockerfile scanning, Kubernetes manifest scanning, shared risk/coverage/gates, JSON/HTML reporting, contributor documentation, wheel/sdist packaging, native standalone downloads, Docker distribution, and an optional external analyst interface.
+The Blacklight core is implemented as a source-based CLI project: deterministic AWS scanning, Dockerfile scanning, Kubernetes manifest scanning, shared risk/coverage/gates, JSON/HTML reporting, contributor documentation, and an optional external analyst interface.
 
 Future expansion is intentionally a new phase rather than unfinished core work:
 
@@ -304,8 +263,7 @@ Future expansion is intentionally a new phase rather than unfinished core work:
 - deeper AWS/Docker/Kubernetes checks
 - live Kubernetes cluster and Docker-daemon inspection
 - additional cloud providers
-- desktop GUI around the existing native executable
-- signed/notarized Windows and macOS binaries
+- packaging or UI work only if the project direction calls for it later
 - richer third-party scanner/analyst extension points
 
 See [docs/how-blacklight-works.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/how-blacklight-works.md) for the end-to-end architecture.

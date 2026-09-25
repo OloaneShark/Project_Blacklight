@@ -32,23 +32,9 @@ dev = [
   "pytest>=8,<9",
   "ruff>=0.8,<1",
 ]
-release = [
-  "build>=1.2,<2",
-  "twine>=6,<7",
-]
-standalone = [
-  "pyinstaller>=6.15,<7",
-]
-desktop = [
-  "PySide6-Essentials>=6.8,<7",
-  "pyinstaller>=6.15,<7",
-]
 
 [project.scripts]
 blacklight = "blacklight_security.cli:main"
-
-[project.gui-scripts]
-blacklight-desktop = "blacklight_security.desktop.app:main"
 
 [project.urls]
 Homepage = "https://github.com/OloaneShark/Project_Blacklight"

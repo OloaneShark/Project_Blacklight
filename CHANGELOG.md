@@ -2,6 +2,21 @@
 
 All notable changes to Project Blacklight will be documented here.
 
+## [Unreleased]
+
+### Removed
+
+- Graphical Blacklight Desktop application and desktop-specific tests/dependencies.
+- Native standalone executable builders and one-command installers.
+- GitHub Release, PyPI, GHCR, desktop-build, standalone-build, and Docker-image distribution workflows.
+- Release/distribution documentation and repository Docker packaging.
+
+### Changed
+
+- Project Blacklight is source-only again: users clone, fork, or download the GitHub repository and run the CLI from a Python environment.
+- GitHub Actions now focuses on linting and testing the source project.
+- Added dedicated AWS credential setup guidance that keeps secrets outside the repository.
+
 ## [0.1.0-alpha.26] - 2026-09-24
 
 ### Changed

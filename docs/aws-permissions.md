@@ -1,5 +1,7 @@
 # AWS Permissions for Project Blacklight
 
+For credential setup (AWS profiles, SSO, environment variables, IAM roles, and why Blacklight does not use a project `.env` by default), see [aws-credentials.md](aws-credentials.md).
+
 Project Blacklight is designed to scan AWS environments in read-only mode. The built-in AWS scanners do not need permission to create, modify, or delete AWS resources.
 
 ## Recommended approach
