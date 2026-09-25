@@ -87,16 +87,20 @@ The analyst receives report JSON on stdin and returns explanation on stdout.
 
 It cannot change the original findings or scan exit code.
 
-## Distribution
+## Source-only use
 
-Blacklight is packaged four ways:
+Blacklight is maintained as a GitHub source project.
 
-1. Python source / editable development install
-2. Python wheel + source distribution
-3. Native standalone Windows, Linux, and macOS archives
-4. Docker image through GHCR
+Users clone or download the repository, create a Python virtual environment, and install the checkout in editable mode:
 
-The standalone archives include the frozen Blacklight executable and do not require Python on the destination machine.
+```bash
+git clone https://github.com/OloaneShark/Project_Blacklight.git
+cd Project_Blacklight
+python -m venv .venv
+python -m pip install -e .
+```
+
+There is no desktop application, native executable, release installer, PyPI publishing flow, or hosted container distribution to maintain.
 
 ## Adding future targets
 
@@ -116,4 +120,4 @@ Finding objects
 existing risk/report/gate pipeline
 ```
 
-That means a later desktop `.exe` UI can collect a server address, credential reference, cloud profile, Dockerfile path, or Kubernetes directory and hand that target to the appropriate scanner without rebuilding the reporting system.
+That means future scanners can add new target types without rebuilding Blacklight's findings, risk, coverage, gates, or reporting system.
