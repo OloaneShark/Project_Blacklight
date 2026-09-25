@@ -8,16 +8,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QObject, QPointF, QRectF, QThread, Qt, Signal
-from PySide6.QtGui import (
-    QBrush,
-    QColor,
-    QIcon,
-    QPainter,
-    QPen,
-    QPixmap,
-    QPolygonF,
-)
+from PySide6.QtCore import QObject, QThread, Qt, Signal
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -49,9 +41,9 @@ from blacklight_security.desktop.controller import (
     run_scan,
     write_report,
 )
-from blacklight_security.desktop.theme import DESKTOP_STYLESHEET
 from blacklight_security.models import Severity
 from blacklight_security.risk import assess_risk
+from blacklight_security.desktop.theme import DESKTOP_STYLESHEET
 
 
 SEVERITY_ORDER = {
@@ -65,90 +57,14 @@ SEVERITY_ORDER = {
 }
 
 SEVERITY_COLORS = {
-    Severity.CRITICAL: "#d92d20",
-    Severity.HIGH: "#dc6803",
-    Severity.MEDIUM: "#b54708",
-    Severity.LOW: "#027a48",
-    Severity.ERROR: "#6941c6",
-    Severity.INFO: "#175cd3",
-    Severity.PASS: "#067647",
+    Severity.CRITICAL: "#ff4d6d",
+    Severity.HIGH: "#ff7a59",
+    Severity.MEDIUM: "#f6c453",
+    Severity.LOW: "#4ecdc4",
+    Severity.ERROR: "#d06cff",
+    Severity.INFO: "#8ba4ff",
+    Severity.PASS: "#5ac97a",
 }
-
-
-def _line_icon(kind: str) -> QIcon:
-    size = 18
-    pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.transparent)
-
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing, True)
-    pen = QPen(QColor("#3d3d39"))
-    pen.setWidthF(1.35)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-
-    if kind == "home":
-        painter.drawPolyline(
-            QPolygonF(
-                [
-                    QPointF(3, 8),
-                    QPointF(9, 3),
-                    QPointF(15, 8),
-                ]
-            )
-        )
-        painter.drawRect(QRectF(5, 8, 8, 7))
-        painter.drawLine(QPointF(8, 15), QPointF(8, 11))
-        painter.drawLine(QPointF(10, 11), QPointF(10, 15))
-    elif kind == "new":
-        painter.drawRoundedRect(QRectF(3, 3, 12, 12), 2, 2)
-        painter.drawLine(QPointF(9, 5.8), QPointF(9, 12.2))
-        painter.drawLine(QPointF(5.8, 9), QPointF(12.2, 9))
-    elif kind == "targets":
-        for x, y in ((3, 3), (10, 3), (3, 10), (10, 10)):
-            painter.drawRoundedRect(QRectF(x, y, 5, 5), 1, 1)
-    elif kind == "findings":
-        painter.drawPolygon(
-            QPolygonF(
-                [
-                    QPointF(9, 2.8),
-                    QPointF(15.2, 14.5),
-                    QPointF(2.8, 14.5),
-                ]
-            )
-        )
-        painter.drawLine(QPointF(9, 6.4), QPointF(9, 10.4))
-        painter.drawPoint(QPointF(9, 12.6))
-    elif kind == "reports":
-        painter.drawRoundedRect(QRectF(4, 2.5, 10, 13), 1.4, 1.4)
-        painter.drawLine(QPointF(6.3, 6), QPointF(11.8, 6))
-        painter.drawLine(QPointF(6.3, 9), QPointF(11.8, 9))
-        painter.drawLine(QPointF(6.3, 12), QPointF(10.2, 12))
-    elif kind == "more":
-        for x in (5, 9, 13):
-            painter.drawEllipse(QPointF(x, 9), 0.8, 0.8)
-    elif kind == "search":
-        painter.drawEllipse(QRectF(3, 3, 8.5, 8.5))
-        painter.drawLine(QPointF(10.3, 10.3), QPointF(14.5, 14.5))
-    elif kind == "settings":
-        painter.drawEllipse(QRectF(5.3, 5.3, 7.4, 7.4))
-        painter.drawEllipse(QRectF(7.8, 7.8, 2.4, 2.4))
-        for point in (
-            (9, 2.2, 9, 4.2),
-            (9, 13.8, 9, 15.8),
-            (2.2, 9, 4.2, 9),
-            (13.8, 9, 15.8, 9),
-        ):
-            painter.drawLine(QPointF(point[0], point[1]), QPointF(point[2], point[3]))
-    elif kind == "info":
-        painter.drawEllipse(QRectF(2.8, 2.8, 12.4, 12.4))
-        painter.drawLine(QPointF(9, 7.8), QPointF(9, 12.1))
-        painter.drawPoint(QPointF(9, 5.7))
-
-    painter.end()
-    return QIcon(pixmap)
 
 
 class ScanWorker(QObject):
@@ -171,8 +87,8 @@ class MetricCard(QFrame):
         super().__init__()
         self.setObjectName("MetricCard")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 13, 16, 13)
-        layout.setSpacing(3)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(4)
 
         caption = QLabel(label.upper())
         caption.setObjectName("MetricLabel")
@@ -183,7 +99,7 @@ class MetricCard(QFrame):
         layout.addWidget(self.value)
 
 
-class TargetRow(QFrame):
+class TargetCard(QFrame):
     selected = Signal(str)
 
     def __init__(
@@ -191,44 +107,40 @@ class TargetRow(QFrame):
         provider: str,
         title: str,
         description: str,
-        status: str,
-        enabled: bool,
+        status: str = "READY",
+        enabled: bool = True,
     ):
         super().__init__()
         self.provider = provider
         self.enabled = enabled
-        self.setObjectName("TargetRow")
+        self.setObjectName("TargetCard")
+        self.setCursor(Qt.PointingHandCursor if enabled else Qt.ArrowCursor)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(18, 15, 18, 15)
-        layout.setSpacing(14)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(8)
 
-        badge = QLabel(title[:1].upper())
-        badge.setObjectName("TargetBadge")
-        badge.setFixedSize(34, 34)
-        badge.setAlignment(Qt.AlignCenter)
+        header = QHBoxLayout()
+        title_label = QLabel(title)
+        title_label.setObjectName("SectionTitle")
+        status_label = QLabel(status)
+        status_label.setObjectName("Muted")
+        header.addWidget(title_label)
+        header.addStretch()
+        header.addWidget(status_label)
 
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(3)
-        name = QLabel(title)
-        name.setObjectName("SectionTitle")
-        detail = QLabel(description)
-        detail.setObjectName("Muted")
-        detail.setWordWrap(True)
-        text_layout.addWidget(name)
-        text_layout.addWidget(detail)
+        desc = QLabel(description)
+        desc.setObjectName("Muted")
+        desc.setWordWrap(True)
 
-        state = QLabel(status)
-        state.setObjectName("StatusReady" if enabled else "StatusSoon")
+        layout.addLayout(header)
+        layout.addWidget(desc)
+        layout.addStretch()
 
-        button = QPushButton("Open" if enabled else "Coming later")
-        button.setObjectName("QuietButton")
+        button = QPushButton("Configure Scan" if enabled else "Next Phase")
+        button.setObjectName("SecondaryButton")
         button.setEnabled(enabled)
         button.clicked.connect(lambda: self.selected.emit(self.provider))
-
-        layout.addWidget(badge)
-        layout.addLayout(text_layout, 1)
-        layout.addWidget(state)
         layout.addWidget(button)
 
     def mousePressEvent(self, event: Any) -> None:
@@ -241,16 +153,14 @@ class BlacklightDesktop(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"Project Blacklight {__version__}")
-        self.resize(1420, 860)
-        self.setMinimumSize(1120, 720)
+        self.resize(1280, 820)
+        self.setMinimumSize(1080, 700)
 
         self.current_outcome: DesktopScanOutcome | None = None
         self.scan_thread: QThread | None = None
         self.scan_worker: ScanWorker | None = None
-        self.scan_origin = "form"
 
         root = QWidget()
-        root.setObjectName("Root")
         self.setCentralWidget(root)
         root_layout = QHBoxLayout(root)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -258,16 +168,7 @@ class BlacklightDesktop(QMainWindow):
 
         root_layout.addWidget(self._build_sidebar())
 
-        content = QFrame()
-        content.setObjectName("Content")
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(0)
-
-        content_layout.addWidget(self._build_topbar())
-
         self.pages = QStackedWidget()
-        self.pages.setObjectName("Pages")
         self.dashboard_page = self._build_dashboard()
         self.targets_page = self._build_targets_page()
         self.scan_page = self._build_scan_page()
@@ -285,166 +186,51 @@ class BlacklightDesktop(QMainWindow):
         ):
             self.pages.addWidget(page)
 
-        content_layout.addWidget(self.pages, 1)
-        root_layout.addWidget(content, 1)
-        self.top_target_combo.setCurrentIndex(0)
-        self._update_home_provider(None)
+        root_layout.addWidget(self.pages, 1)
         self._set_page(0)
 
     def _build_sidebar(self) -> QWidget:
         sidebar = QFrame()
         sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(278)
+        sidebar.setFixedWidth(218)
 
         layout = QVBoxLayout(sidebar)
-        layout.setContentsMargins(16, 26, 16, 16)
-        layout.setSpacing(4)
+        layout.setContentsMargins(18, 24, 18, 20)
+        layout.setSpacing(8)
 
-        brand_row = QHBoxLayout()
-        brand_row.setSpacing(8)
-
-        mark = QLabel("B")
-        mark.setObjectName("BrandMark")
-        mark.setAlignment(Qt.AlignCenter)
-        mark.setFixedSize(28, 28)
-
-        brand = QLabel("blacklight")
+        brand = QLabel("BLACKLIGHT")
         brand.setObjectName("Brand")
+        version = QLabel(f"DESKTOP  {__version__}")
+        version.setObjectName("Version")
 
-        alpha = QLabel("ALPHA")
-        alpha.setObjectName("AlphaBadge")
+        layout.addWidget(brand)
+        layout.addWidget(version)
+        layout.addSpacing(24)
 
-        brand_row.addWidget(mark)
-        brand_row.addWidget(brand)
-        brand_row.addWidget(alpha)
-        brand_row.addStretch()
-
-        search = QPushButton("")
-        search.setObjectName("SidebarIconButton")
-        search.setIcon(_line_icon("search"))
-        search.setToolTip("Search is coming later")
-        brand_row.addWidget(search)
-
-        layout.addLayout(brand_row)
-        layout.addSpacing(18)
-
-        nav_specs = (
-            ("Home", 0, "home"),
-            ("New scan", 2, "new"),
-            ("Targets", 1, "targets"),
-            ("Findings", 3, "findings"),
-            ("Reports", 4, "reports"),
-        )
-
-        self.nav_buttons: list[tuple[int, QPushButton]] = []
-        for label, page_index, icon_name in nav_specs:
+        self.nav_buttons: list[QPushButton] = []
+        for index, label in enumerate(
+            ("Dashboard", "Targets", "Scan", "Findings", "Reports", "Settings")
+        ):
             button = QPushButton(label)
             button.setObjectName("NavButton")
             button.setCheckable(True)
-            button.setIcon(_line_icon(icon_name))
-            button.clicked.connect(
-                lambda checked=False, i=page_index: self._set_page(i)
-            )
+            button.clicked.connect(lambda checked=False, i=index: self._set_page(i))
             layout.addWidget(button)
-            self.nav_buttons.append((page_index, button))
+            self.nav_buttons.append(button)
 
-        more = QPushButton("More")
-        more.setObjectName("NavButton")
-        more.setIcon(_line_icon("more"))
-        more.clicked.connect(lambda: self._set_page(5))
-        layout.addWidget(more)
-
-        layout.addSpacing(22)
-        recents_title = QLabel("Recents")
-        recents_title.setObjectName("SidebarSection")
-        layout.addWidget(recents_title)
-
-        self.recents_box = QVBoxLayout()
-        self.recents_box.setSpacing(2)
-        self.recents_placeholder = QLabel("No recent scans yet")
-        self.recents_placeholder.setObjectName("SidebarMuted")
-        self.recents_box.addWidget(self.recents_placeholder)
-        layout.addLayout(self.recents_box)
         layout.addStretch()
 
-        account = QFrame()
-        account.setObjectName("EngineRow")
-        account_layout = QHBoxLayout(account)
-        account_layout.setContentsMargins(0, 8, 0, 0)
-        account_layout.setSpacing(9)
-
-        engine_badge = QLabel("B")
-        engine_badge.setObjectName("EngineBadge")
-        engine_badge.setAlignment(Qt.AlignCenter)
-        engine_badge.setFixedSize(32, 32)
-
-        engine_text = QVBoxLayout()
-        engine_text.setSpacing(0)
-        engine_name = QLabel("Blacklight")
-        engine_name.setObjectName("EngineName")
-        engine_state = QLabel("Local engine")
-        engine_state.setObjectName("SidebarMuted")
-        engine_text.addWidget(engine_name)
-        engine_text.addWidget(engine_state)
-
-        settings = QPushButton("")
-        settings.setObjectName("SidebarIconButton")
-        settings.setIcon(_line_icon("settings"))
-        settings.clicked.connect(lambda: self._set_page(5))
-        settings.setToolTip("Settings")
-
-        account_layout.addWidget(engine_badge)
-        account_layout.addLayout(engine_text)
-        account_layout.addStretch()
-        account_layout.addWidget(settings)
-        layout.addWidget(account)
+        engine = QLabel("LOCAL SECURITY ENGINE")
+        engine.setObjectName("Muted")
+        layout.addWidget(engine)
 
         return sidebar
 
-    def _build_topbar(self) -> QWidget:
-        topbar = QFrame()
-        topbar.setObjectName("TopBar")
-        topbar.setFixedHeight(70)
-
-        layout = QHBoxLayout(topbar)
-        layout.setContentsMargins(24, 0, 24, 0)
-        layout.setSpacing(12)
-
-        self.top_target_combo = QComboBox()
-        self.top_target_combo.setObjectName("TopTargetCombo")
-        self.top_target_combo.addItem("Select target", None)
-        self.top_target_combo.addItem("AWS Account", "aws")
-        self.top_target_combo.addItem("Docker Project", "docker")
-        self.top_target_combo.addItem("Kubernetes Manifests", "kubernetes")
-        self.top_target_combo.currentIndexChanged.connect(self._top_target_changed)
-        layout.addWidget(self.top_target_combo)
-
-        layout.addStretch()
-
-        local_dot = QLabel("")
-        local_dot.setObjectName("LocalDot")
-        local_dot.setFixedSize(8, 8)
-        local_status = QLabel("Local")
-        local_status.setObjectName("TopMuted")
-
-        layout.addWidget(local_dot)
-        layout.addWidget(local_status)
-
-        about = QPushButton("")
-        about.setObjectName("TopIconButton")
-        about.setIcon(_line_icon("info"))
-        about.setToolTip("About Project Blacklight")
-        about.clicked.connect(lambda: self._set_page(5))
-        layout.addWidget(about)
-
-        return topbar
-
     def _page_shell(self, title: str, subtitle: str) -> tuple[QWidget, QVBoxLayout]:
         page = QWidget()
-        page.setObjectName("Page")
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(32, 28, 32, 28)
-        layout.setSpacing(14)
+        layout.setContentsMargins(30, 28, 30, 28)
+        layout.setSpacing(18)
 
         title_label = QLabel(title)
         title_label.setObjectName("PageTitle")
@@ -457,164 +243,111 @@ class BlacklightDesktop(QMainWindow):
         return page, layout
 
     def _build_dashboard(self) -> QWidget:
-        page = QWidget()
-        page.setObjectName("Page")
-        outer = QVBoxLayout(page)
-        outer.setContentsMargins(36, 0, 36, 0)
-        outer.setSpacing(0)
-        outer.addStretch(3)
+        page, layout = self._page_shell(
+            "Security workspace",
+            "Run deterministic security scans locally. Choose a target type and Blacklight handles the same risk, coverage, findings, and reporting pipeline underneath.",
+        )
 
-        center = QWidget()
-        center.setMaximumWidth(760)
-        center_layout = QVBoxLayout(center)
-        center_layout.setContentsMargins(0, 0, 0, 0)
-        center_layout.setSpacing(22)
-
-        headline_row = QHBoxLayout()
-        headline_row.setSpacing(12)
-        hero_mark = QLabel("B")
-        hero_mark.setObjectName("HeroMark")
-        hero_mark.setAlignment(Qt.AlignCenter)
-        hero_mark.setFixedSize(46, 46)
-
-        headline = QLabel("What should Blacklight scan?")
-        headline.setObjectName("HeroTitle")
-        headline_row.addStretch()
-        headline_row.addWidget(hero_mark)
-        headline_row.addWidget(headline)
-        headline_row.addStretch()
-        center_layout.addLayout(headline_row)
-
-        launcher = QFrame()
-        launcher.setObjectName("Launcher")
-        launcher_layout = QVBoxLayout(launcher)
-        launcher_layout.setContentsMargins(20, 14, 14, 12)
-        launcher_layout.setSpacing(10)
-
-        self.home_input = QLineEdit()
-        self.home_input.setObjectName("LauncherInput")
-        self.home_input.setPlaceholderText("Select a target to start")
-        self.home_input.returnPressed.connect(self._run_home_scan)
-        launcher_layout.addWidget(self.home_input)
-
-        launcher_controls = QHBoxLayout()
-        launcher_controls.setSpacing(8)
-
-        add_button = QPushButton("+")
-        add_button.setObjectName("LauncherIconButton")
-        add_button.setFixedSize(34, 34)
-        add_button.clicked.connect(self._home_browse_or_targets)
-        launcher_controls.addWidget(add_button)
-
-        self.home_provider_buttons: dict[str, QPushButton] = {}
-        for provider, label in (
-            ("aws", "AWS"),
-            ("docker", "Docker"),
-            ("kubernetes", "Kubernetes"),
+        metrics = QHBoxLayout()
+        self.dashboard_risk = MetricCard("Last Risk", "--")
+        self.dashboard_coverage = MetricCard("Coverage", "--")
+        self.dashboard_findings = MetricCard("Actionable", "--")
+        self.dashboard_provider = MetricCard("Provider", "--")
+        for card in (
+            self.dashboard_risk,
+            self.dashboard_coverage,
+            self.dashboard_findings,
+            self.dashboard_provider,
         ):
-            button = QPushButton(label)
-            button.setObjectName("LauncherToolButton")
-            button.setCheckable(True)
-            button.clicked.connect(
-                lambda checked=False, p=provider: self._select_home_provider(p)
-            )
-            self.home_provider_buttons[provider] = button
-            launcher_controls.addWidget(button)
+            metrics.addWidget(card)
+        layout.addLayout(metrics)
 
-        advanced = QPushButton("Advanced")
-        advanced.setObjectName("LauncherToolButton")
-        advanced.clicked.connect(lambda: self._set_page(2))
-        launcher_controls.addWidget(advanced)
+        section = QLabel("TARGET TYPES")
+        section.setObjectName("SectionTitle")
+        layout.addWidget(section)
 
-        launcher_controls.addStretch()
+        cards = QHBoxLayout()
+        targets = (
+            ("aws", "AWS Account", "Audit S3, IAM, CloudTrail, EC2, RDS, Lambda and GuardDuty using the normal AWS credential chain.", "READY", True),
+            ("docker", "Docker Project", "Scan local Dockerfiles for root runtime, embedded secrets, mutable images and risky build instructions.", "READY", True),
+            ("kubernetes", "Kubernetes", "Inspect workload manifests locally for privileged execution, host access, mutable images and other risky settings.", "READY", True),
+            ("server", "Server / SSH", "Connect a read-only server target and inspect services, SSH, firewall and host configuration.", "NEXT PHASE", False),
+        )
+        for provider, title, description, status, enabled in targets:
+            card = TargetCard(provider, title, description, status, enabled)
+            card.selected.connect(self._start_target)
+            cards.addWidget(card)
+        layout.addLayout(cards)
 
-        self.home_run_button = QPushButton("↑")
-        self.home_run_button.setObjectName("RoundPrimary")
-        self.home_run_button.setFixedSize(42, 42)
-        self.home_run_button.clicked.connect(self._run_home_scan)
-        launcher_controls.addWidget(self.home_run_button)
-
-        launcher_layout.addLayout(launcher_controls)
-        center_layout.addWidget(launcher)
-
-        self.home_status = QLabel("Runs locally using the same deterministic Blacklight engine as the CLI.")
-        self.home_status.setObjectName("HomeHint")
-        self.home_status.setAlignment(Qt.AlignCenter)
-        self.home_status.setWordWrap(True)
-        center_layout.addWidget(self.home_status)
-
-        outer.addWidget(center, 0, Qt.AlignHCenter)
-        outer.addStretch(4)
+        panel = QFrame()
+        panel.setObjectName("Panel")
+        panel_layout = QHBoxLayout(panel)
+        panel_layout.setContentsMargins(18, 16, 18, 16)
+        text = QLabel(
+            "Blacklight Desktop runs the same deterministic engine as the CLI. "
+            "No cloud dashboard account is required for Docker/Kubernetes local scans."
+        )
+        text.setObjectName("Muted")
+        text.setWordWrap(True)
+        panel_layout.addWidget(text)
+        open_scan = QPushButton("New Scan")
+        open_scan.setObjectName("PrimaryButton")
+        open_scan.clicked.connect(lambda: self._set_page(2))
+        panel_layout.addWidget(open_scan)
+        layout.addWidget(panel)
+        layout.addStretch()
         return page
 
     def _build_targets_page(self) -> QWidget:
         page, layout = self._page_shell(
             "Targets",
-            "Choose the kind of infrastructure or project Blacklight should inspect.",
+            "Choose what Blacklight should inspect. Current targets run locally or through read-only provider APIs.",
         )
 
-        target_specs = (
-            (
-                "aws",
-                "AWS Account",
-                "Use an AWS profile or the default credential chain for read-only cloud checks.",
-                "Ready",
-                True,
-            ),
-            (
-                "docker",
-                "Docker Project",
-                "Choose a local project directory or Dockerfile. No Docker daemon is required.",
-                "Ready",
-                True,
-            ),
-            (
-                "kubernetes",
-                "Kubernetes Manifests",
-                "Choose local YAML manifests. No cluster credentials are required.",
-                "Ready",
-                True,
-            ),
-            (
-                "server",
-                "Server / SSH",
-                "Future live-host scans for SSH, firewall, users, services and host configuration.",
-                "Next phase",
-                False,
-            ),
+        cards = QHBoxLayout()
+        targets = (
+            ("aws", "AWS Account", "Use an AWS profile or the default credential chain for read-only cloud security checks.", "READY", True),
+            ("docker", "Docker Project", "Choose a local Docker project or Dockerfile. No Docker daemon is required.", "READY", True),
+            ("kubernetes", "Kubernetes", "Choose local Kubernetes YAML. No cluster credentials are required for static manifest scans.", "READY", True),
+            ("server", "Server / SSH", "A future live-host target for SSH, services, firewall, users, permissions and host security.", "NEXT PHASE", False),
         )
+        for provider, title, description, status, enabled in targets:
+            card = TargetCard(provider, title, description, status, enabled)
+            card.selected.connect(self._start_target)
+            cards.addWidget(card)
 
-        list_frame = QFrame()
-        list_frame.setObjectName("TargetList")
-        list_layout = QVBoxLayout(list_frame)
-        list_layout.setContentsMargins(0, 0, 0, 0)
-        list_layout.setSpacing(10)
+        layout.addLayout(cards)
 
-        for spec in target_specs:
-            row = TargetRow(*spec)
-            row.selected.connect(self._start_target)
-            list_layout.addWidget(row)
-
-        layout.addWidget(list_frame)
+        panel = QFrame()
+        panel.setObjectName("Panel")
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(18, 16, 18, 16)
+        target_note = QLabel(
+            "Target credentials are not stored by this first desktop build. AWS uses the normal "
+            "boto3 credential chain; Docker and Kubernetes scans read local files."
+        )
+        target_note.setObjectName("Muted")
+        target_note.setWordWrap(True)
+        panel_layout.addWidget(target_note)
+        layout.addWidget(panel)
         layout.addStretch()
         return page
 
     def _build_scan_page(self) -> QWidget:
         page, layout = self._page_shell(
             "New scan",
-            "Configure the target and optional gate behavior before Blacklight runs.",
+            "Select a target and configure only the information required for that provider.",
         )
 
         panel = QFrame()
-        panel.setObjectName("FormPanel")
-        panel.setMaximumWidth(820)
+        panel.setObjectName("Panel")
         panel_layout = QVBoxLayout(panel)
-        panel_layout.setContentsMargins(26, 24, 26, 24)
-        panel_layout.setSpacing(16)
+        panel_layout.setContentsMargins(22, 20, 22, 20)
+        panel_layout.setSpacing(14)
 
         form = QFormLayout()
-        form.setHorizontalSpacing(22)
-        form.setVerticalSpacing(14)
+        form.setHorizontalSpacing(20)
+        form.setVerticalSpacing(12)
 
         self.provider_combo = QComboBox()
         self.provider_combo.addItem("AWS Account", "aws")
@@ -630,7 +363,7 @@ class BlacklightDesktop(QMainWindow):
         self.path_input = QLineEdit()
         self.path_input.setPlaceholderText("Project directory or file")
         browse = QPushButton("Browse")
-        browse.setObjectName("QuietButton")
+        browse.setObjectName("SecondaryButton")
         browse.clicked.connect(self._browse_path)
         path_layout.addWidget(self.path_input, 1)
         path_layout.addWidget(browse)
@@ -660,7 +393,7 @@ class BlacklightDesktop(QMainWindow):
 
         controls = QHBoxLayout()
         controls.addStretch()
-        self.run_button = QPushButton("Run scan")
+        self.run_button = QPushButton("Run Blacklight Scan")
         self.run_button.setObjectName("PrimaryButton")
         self.run_button.clicked.connect(self._run_scan)
         controls.addWidget(self.run_button)
@@ -676,7 +409,7 @@ class BlacklightDesktop(QMainWindow):
         self.scan_status.setObjectName("Muted")
         panel_layout.addWidget(self.scan_status)
 
-        layout.addWidget(panel, 0, Qt.AlignHCenter)
+        layout.addWidget(panel)
         layout.addStretch()
         self._provider_changed()
         return page
@@ -684,7 +417,7 @@ class BlacklightDesktop(QMainWindow):
     def _build_findings_page(self) -> QWidget:
         page, layout = self._page_shell(
             "Findings",
-            "Select a finding to inspect the evidence and remediation behind it.",
+            "Observed security evidence from the most recent scan. Select a row to inspect remediation and evidence.",
         )
 
         metrics = QHBoxLayout()
@@ -704,16 +437,15 @@ class BlacklightDesktop(QMainWindow):
         self.findings_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.findings_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.findings_table.setAlternatingRowColors(True)
-        self.findings_table.verticalHeader().setVisible(False)
         self.findings_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.findings_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.findings_table.itemSelectionChanged.connect(self._finding_selected)
         splitter.addWidget(self.findings_table)
 
         detail_panel = QFrame()
-        detail_panel.setObjectName("DetailPanel")
+        detail_panel.setObjectName("Panel")
         detail_layout = QVBoxLayout(detail_panel)
-        detail_layout.setContentsMargins(18, 18, 18, 18)
+        detail_layout.setContentsMargins(16, 16, 16, 16)
         detail_layout.setSpacing(10)
 
         self.finding_title = QLabel("Select a finding")
@@ -732,7 +464,7 @@ class BlacklightDesktop(QMainWindow):
         detail_layout.addWidget(self.finding_meta)
         detail_layout.addWidget(self.finding_detail, 1)
         splitter.addWidget(detail_panel)
-        splitter.setSizes([760, 420])
+        splitter.setSizes([720, 420])
 
         layout.addWidget(splitter, 1)
         return page
@@ -740,14 +472,13 @@ class BlacklightDesktop(QMainWindow):
     def _build_reports_page(self) -> QWidget:
         page, layout = self._page_shell(
             "Reports",
-            "Export the most recent result without rerunning the scan.",
+            "Export the latest Blacklight result without rerunning the scan.",
         )
 
         panel = QFrame()
-        panel.setObjectName("FormPanel")
-        panel.setMaximumWidth(820)
+        panel.setObjectName("Panel")
         panel_layout = QVBoxLayout(panel)
-        panel_layout.setContentsMargins(24, 22, 24, 22)
+        panel_layout.setContentsMargins(22, 20, 22, 20)
         panel_layout.setSpacing(14)
 
         self.report_status = QLabel("No completed scan yet.")
@@ -758,7 +489,7 @@ class BlacklightDesktop(QMainWindow):
         self.export_json_button = QPushButton("Export JSON")
         self.export_html_button = QPushButton("Export HTML")
         for button in (self.export_json_button, self.export_html_button):
-            button.setObjectName("QuietButton")
+            button.setObjectName("SecondaryButton")
             button.setEnabled(False)
         self.export_json_button.clicked.connect(lambda: self._export_report("json"))
         self.export_html_button.clicked.connect(lambda: self._export_report("html"))
@@ -767,83 +498,51 @@ class BlacklightDesktop(QMainWindow):
         buttons.addStretch()
         panel_layout.addLayout(buttons)
 
-        layout.addWidget(panel, 0, Qt.AlignHCenter)
+        layout.addWidget(panel)
         layout.addStretch()
         return page
 
     def _build_settings_page(self) -> QWidget:
         page, layout = self._page_shell(
-            "More",
-            "Blacklight Desktop is intentionally local-first in this release.",
+            "Settings",
+            "Desktop configuration stays local. Blacklight does not require a hosted account for the current scan providers.",
         )
 
         panel = QFrame()
-        panel.setObjectName("FormPanel")
-        panel.setMaximumWidth(820)
+        panel.setObjectName("Panel")
         panel_layout = QVBoxLayout(panel)
-        panel_layout.setContentsMargins(24, 22, 24, 22)
-        panel_layout.setSpacing(9)
+        panel_layout.setContentsMargins(22, 20, 22, 20)
+        panel_layout.setSpacing(10)
 
-        heading = QLabel("About this build")
-        heading.setObjectName("SectionTitle")
-        panel_layout.addWidget(heading)
+        title = QLabel("ENGINE")
+        title.setObjectName("SectionTitle")
+        panel_layout.addWidget(title)
 
         for text in (
-            f"Version {__version__}",
-            "Light mode only",
-            "Detection is deterministic",
-            "Current targets: AWS, Docker, Kubernetes manifests",
+            f"Version: {__version__}",
+            "Detection: deterministic",
+            "Current targets: AWS, Dockerfile, Kubernetes manifests",
             "Server / SSH targets: next product phase",
-            "No hosted Blacklight account is required",
+            "Desktop data: local process only in this first build",
         ):
             label = QLabel(text)
             label.setObjectName("Muted")
             panel_layout.addWidget(label)
 
-        layout.addWidget(panel, 0, Qt.AlignHCenter)
+        layout.addWidget(panel)
         layout.addStretch()
         return page
 
     def _set_page(self, index: int) -> None:
         self.pages.setCurrentIndex(index)
-        for page_index, button in self.nav_buttons:
-            button.setChecked(page_index == index)
-
-    def _top_target_changed(self) -> None:
-        provider = self.top_target_combo.currentData()
-        if provider is None:
-            self._update_home_provider(None)
-            return
-        self._update_home_provider(provider)
-        provider_index = {"aws": 0, "docker": 1, "kubernetes": 2}[provider]
-        if hasattr(self, "provider_combo"):
-            self.provider_combo.setCurrentIndex(provider_index)
-
-    def _select_home_provider(self, provider: str) -> None:
-        index = {"aws": 1, "docker": 2, "kubernetes": 3}[provider]
-        self.top_target_combo.setCurrentIndex(index)
-
-    def _update_home_provider(self, provider: str | None) -> None:
-        if not hasattr(self, "home_input"):
-            return
-
-        for key, button in self.home_provider_buttons.items():
-            button.setChecked(key == provider)
-
-        placeholders = {
-            "aws": "AWS profile (optional — leave blank for the default credential chain)",
-            "docker": "Project folder or Dockerfile path",
-            "kubernetes": "Manifest folder or YAML file path",
-            None: "Select a target above or choose AWS, Docker, or Kubernetes below",
-        }
-        self.home_input.setPlaceholderText(placeholders[provider])
+        for i, button in enumerate(self.nav_buttons):
+            button.setChecked(i == index)
 
     def _start_target(self, provider: str) -> None:
         provider_index = {"aws": 0, "docker": 1, "kubernetes": 2}.get(provider)
         if provider_index is None:
             return
         self.provider_combo.setCurrentIndex(provider_index)
-        self.top_target_combo.setCurrentIndex(provider_index + 1)
         self._set_page(2)
 
     def _provider_changed(self) -> None:
@@ -858,38 +557,10 @@ class BlacklightDesktop(QMainWindow):
         self.path_container.setVisible(not is_aws)
         self.path_label.setVisible(not is_aws)
 
-        top_index = {"aws": 1, "docker": 2, "kubernetes": 3}.get(provider)
-        if top_index is not None and self.top_target_combo.currentIndex() != top_index:
-            self.top_target_combo.blockSignals(True)
-            self.top_target_combo.setCurrentIndex(top_index)
-            self.top_target_combo.blockSignals(False)
-            self._update_home_provider(provider)
-
-    def _home_browse_or_targets(self) -> None:
-        provider = self.top_target_combo.currentData()
-        if provider in {"docker", "kubernetes"}:
-            selected = QFileDialog.getExistingDirectory(
-                self,
-                "Select project folder",
-                self.home_input.text() or str(Path.cwd()),
-            )
-            if selected:
-                self.home_input.setText(selected)
-            return
-        self._set_page(1)
-
     def _browse_path(self) -> None:
         provider = self.provider_combo.currentData()
-        title = (
-            "Select Docker project folder"
-            if provider == "docker"
-            else "Select Kubernetes manifest folder"
-        )
-        selected = QFileDialog.getExistingDirectory(
-            self,
-            title,
-            self.path_input.text() or str(Path.cwd()),
-        )
+        title = "Select Docker project or file" if provider == "docker" else "Select Kubernetes project or manifest"
+        selected = QFileDialog.getExistingDirectory(self, title, self.path_input.text() or str(Path.cwd()))
         if selected:
             self.path_input.setText(selected)
 
@@ -909,46 +580,15 @@ class BlacklightDesktop(QMainWindow):
             require_full_coverage=self.coverage_check.isChecked(),
         )
 
-    def _home_scan_request(self) -> DesktopScanRequest | None:
-        provider = self.top_target_combo.currentData()
-        if provider is None:
-            QMessageBox.information(
-                self,
-                "Choose a target",
-                "Select AWS, Docker, or Kubernetes before starting a scan.",
-            )
-            return None
-
-        value = self.home_input.text().strip()
-        if provider == "aws":
-            return DesktopScanRequest(provider="aws", profile=value or None)
-
-        return DesktopScanRequest(
-            provider=provider,
-            path=Path(value) if value else Path.cwd(),
-        )
-
-    def _run_home_scan(self) -> None:
-        request = self._home_scan_request()
-        if request is None:
-            return
-        self.scan_origin = "home"
-        self._start_scan_worker(request)
-
     def _run_scan(self) -> None:
-        self.scan_origin = "form"
-        self._start_scan_worker(self._scan_request())
-
-    def _start_scan_worker(self, request: DesktopScanRequest) -> None:
         if self.scan_thread is not None:
             return
 
+        request = self._scan_request()
         self.run_button.setEnabled(False)
-        self.home_run_button.setEnabled(False)
         self.scan_progress.setRange(0, 0)
         self.scan_progress.show()
         self.scan_status.setText(f"Scanning {request.provider.upper()}...")
-        self.home_status.setText(f"Scanning {request.provider.upper()} with Blacklight...")
 
         thread = QThread(self)
         worker = ScanWorker(request)
@@ -975,6 +615,11 @@ class BlacklightDesktop(QMainWindow):
             if severity not in {Severity.PASS, Severity.INFO}
         )
 
+        self.dashboard_risk.value.setText(f"{assessment.score}/100")
+        self.dashboard_coverage.value.setText(result.coverage.status)
+        self.dashboard_findings.value.setText(str(actionable))
+        self.dashboard_provider.value.setText(result.provider.upper())
+
         self.risk_card.value.setText(f"{assessment.score}/100")
         self.coverage_card.value.setText(result.coverage.status)
         self.critical_card.value.setText(str(counts[Severity.CRITICAL]))
@@ -987,38 +632,14 @@ class BlacklightDesktop(QMainWindow):
         self.export_json_button.setEnabled(True)
         self.export_html_button.setEnabled(True)
 
-        summary = (
-            f"{result.provider.upper()} · risk {assessment.level} ({assessment.score}/100) · "
-            f"{actionable} actionable · coverage {result.coverage.status}"
+        self.scan_status.setText(
+            f"Complete. Risk {assessment.level} ({assessment.score}/100), "
+            f"coverage {result.coverage.status}."
         )
-        self.scan_status.setText(f"Complete. {summary}")
-        self.home_status.setText(summary)
-        self._add_recent(summary)
         self._set_page(3)
-
-    def _add_recent(self, summary: str) -> None:
-        if self.recents_placeholder is not None:
-            self.recents_placeholder.hide()
-
-        button = QPushButton(summary)
-        button.setObjectName("RecentButton")
-        button.setToolTip(summary)
-        button.clicked.connect(lambda: self._set_page(3))
-        self.recents_box.insertWidget(0, button)
-
-        recent_buttons = [
-            self.recents_box.itemAt(index).widget()
-            for index in range(self.recents_box.count())
-            if self.recents_box.itemAt(index).widget() is not None
-            and self.recents_box.itemAt(index).widget().objectName() == "RecentButton"
-        ]
-        for old_button in recent_buttons[4:]:
-            self.recents_box.removeWidget(old_button)
-            old_button.deleteLater()
 
     def _scan_failed(self, message: str) -> None:
         self.scan_status.setText("Scan failed.")
-        self.home_status.setText("Scan failed. Open New scan to review the target configuration.")
         QMessageBox.critical(self, "Blacklight scan failed", message)
 
     def _scan_thread_finished(self) -> None:
@@ -1026,7 +647,6 @@ class BlacklightDesktop(QMainWindow):
         self.scan_progress.setRange(0, 1)
         self.scan_progress.setValue(0)
         self.run_button.setEnabled(True)
-        self.home_run_button.setEnabled(True)
 
         if self.scan_worker is not None:
             self.scan_worker.deleteLater()
@@ -1049,7 +669,7 @@ class BlacklightDesktop(QMainWindow):
         for row, finding in enumerate(findings):
             severity_item = QTableWidgetItem(finding.severity.value)
             severity_item.setForeground(
-                QBrush(QColor(SEVERITY_COLORS.get(finding.severity, "#111111")))
+                QBrush(QColor(SEVERITY_COLORS.get(finding.severity, "#ffffff")))
             )
             resource_item = QTableWidgetItem(finding.resource_id)
             title_item = QTableWidgetItem(finding.title)
@@ -1063,9 +683,7 @@ class BlacklightDesktop(QMainWindow):
         else:
             self.finding_title.setText("No findings returned")
             self.finding_meta.setText("")
-            self.finding_detail.setPlainText(
-                "The selected scanner returned no resources/findings."
-            )
+            self.finding_detail.setPlainText("The selected scanner returned no resources/findings.")
 
     def _finding_selected(self) -> None:
         selected = self.findings_table.selectedItems()
@@ -1079,8 +697,7 @@ class BlacklightDesktop(QMainWindow):
 
         self.finding_title.setText(finding.title)
         self.finding_meta.setText(
-            f"{finding.severity.value} · {finding.provider}/{finding.service} · "
-            f"{finding.check_id}"
+            f"{finding.severity.value} · {finding.provider}/{finding.service} · {finding.check_id}"
         )
 
         detail = [
@@ -1091,13 +708,7 @@ class BlacklightDesktop(QMainWindow):
             detail.append(f"\nREMEDIATION\n{finding.remediation}")
         if finding.evidence:
             detail.append(
-                "\nEVIDENCE\n"
-                + json.dumps(
-                    finding.evidence,
-                    indent=2,
-                    sort_keys=True,
-                    default=str,
-                )
+                "\nEVIDENCE\n" + json.dumps(finding.evidence, indent=2, sort_keys=True, default=str)
             )
         self.finding_detail.setPlainText("\n".join(detail))
 
@@ -1147,7 +758,6 @@ def main(argv: list[str] | None = None) -> int:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
     application = QApplication(sys.argv[:1])
-    application.setStyle("Fusion")
     application.setApplicationName("Project Blacklight")
     application.setApplicationVersion(__version__)
     application.setStyleSheet(DESKTOP_STYLESHEET)
