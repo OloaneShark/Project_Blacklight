@@ -17,6 +17,7 @@ from blacklight_security.reporting import render_console, render_json
 from blacklight_security.runner import ScanResult, ScanRunner
 from blacklight_security.scanners.docker import DockerScanTarget
 from blacklight_security.scanners.kubernetes import KubernetesScanTarget
+from blacklight_security.scanners.server import ServerScanTarget
 
 
 def _add_report_options(parser: argparse.ArgumentParser) -> None:
@@ -98,6 +99,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Manifest file or project directory to scan (default: current directory)",
     )
     _add_report_options(kubernetes)
+
+    server = providers.add_parser("server", help="Scan a remote Linux server over read-only SSH")
+    server.add_argument(
+        "--service",
+        choices=["all", *scanner_names("server")],
+        default="all",
+        help="Server scanner to run (default: all)",
+    )
+    server.add_argument("--host", required=True, help="Remote Linux hostname or IP address")
+    server.add_argument("--user", help="SSH username; omit to use OpenSSH configuration/defaults")
+    server.add_argument("--port", type=int, default=22, help="SSH port (default: 22)")
+    server.add_argument(
+        "--identity-file",
+        type=Path,
+        help="SSH private-key path; omit to use ssh-agent/OpenSSH configuration",
+    )
+    server.add_argument(
+        "--connect-timeout",
+        type=int,
+        default=10,
+        help="SSH connection timeout in seconds, 1-60 (default: 10)",
+    )
+    _add_report_options(server)
 
     analyze = commands.add_parser(
         "analyze",
@@ -221,6 +245,26 @@ def _run_kubernetes(args: argparse.Namespace) -> int:
     return _finish_scan(args, result)
 
 
+def _run_server(args: argparse.Namespace) -> int:
+    if not _validate_output_args(args):
+        return 2
+
+    try:
+        target = ServerScanTarget(
+            host=args.host,
+            user=args.user,
+            port=args.port,
+            identity_file=args.identity_file,
+            connect_timeout=args.connect_timeout,
+        )
+    except ValueError as error:
+        print(f"Blacklight server target error: {error}", file=sys.stderr)
+        return 2
+
+    result = ScanRunner("server", target).run(args.service)
+    return _finish_scan(args, result)
+
+
 def _run_analyze(args: argparse.Namespace) -> int:
     try:
         payload = load_report(args.input)
@@ -253,6 +297,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_docker(args)
     if args.command == "scan" and args.provider in {"kubernetes", "k8s"}:
         return _run_kubernetes(args)
+    if args.command == "scan" and args.provider == "server":
+        return _run_server(args)
     if args.command == "analyze":
         return _run_analyze(args)
 
