@@ -33,8 +33,8 @@ _DOCKER_SOCKET_COMMAND = (
 )
 
 _DIRECTIVE_RE = re.compile(
-    r"^(?P<source>[^:]+):\\s*(?P<key>PermitRootLogin|PasswordAuthentication|"
-    r"PermitEmptyPasswords)\\s+(?P<value>\\S+)",
+    r"^(?P<source>[^:]+):\s*(?P<key>PermitRootLogin|PasswordAuthentication|"
+    r"PermitEmptyPasswords)\s+(?P<value>\S+)",
     re.IGNORECASE,
 )
 
