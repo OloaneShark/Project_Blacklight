@@ -52,7 +52,7 @@ def test_server_cli_runs_baseline_and_security_gate(capsys):
 
 
 def test_server_cli_rejects_invalid_target(capsys):
-    exit_code = main(["scan", "server", "--host", "-bad"])
+    exit_code = main(["scan", "server", "--host", "bad host"])
 
     output = capsys.readouterr()
     assert exit_code == 2
