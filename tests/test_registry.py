@@ -36,3 +36,12 @@ def test_builtin_kubernetes_scanner_is_registered():
     assert len(specs) == 1
     assert specs[0].provider == "kubernetes"
     assert specs[0].name == "manifest"
+
+
+def test_builtin_server_scanner_is_registered():
+    assert scanner_names("server") == ["baseline"]
+
+    specs = scanner_specs("server", "baseline")
+    assert len(specs) == 1
+    assert specs[0].provider == "server"
+    assert specs[0].name == "baseline"
