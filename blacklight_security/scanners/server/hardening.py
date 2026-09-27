@@ -324,9 +324,7 @@ class ServerHardeningScanner:
         timer = values.get("timer", "").lower()
 
         if family == "apt":
-            enabled = bool(re.search(r'Unattended-Upgrade[[:space:]]+"1"', config))
-            # Python's regex does not support POSIX character classes; keep a direct fallback.
-            enabled = enabled or ('Unattended-Upgrade "1"' in config)
+            enabled = 'Unattended-Upgrade "1"' in config
             if enabled and timer in {"enabled", "static"}:
                 return self._finding(
                     "server.hardening.automatic_security_updates",
