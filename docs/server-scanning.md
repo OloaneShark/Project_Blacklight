@@ -92,9 +92,9 @@ This first scanner deliberately does not run privileged `sshd -T` commands or cl
 
 ## Permissions
 
-The audit account should have ordinary read access to the information Blacklight inspects. Root or passwordless sudo is not required by the scanner design.
+The audit account should have ordinary read access to the information Blacklight inspects. The baseline scanner does not require root or passwordless sudo. Some firewall tools restrict ruleset/status visibility to privileged users; Blacklight does not elevate with `sudo`. If the audit account cannot inspect an installed firewall backend, the network scanner records an `ERROR` coverage gap rather than silently claiming the host is filtered or unfiltered.
 
-If the account cannot read a piece of configuration, Blacklight should preserve that limitation rather than silently claiming the configuration is safe.
+If the account cannot read a piece of configuration, Blacklight preserves that limitation rather than silently claiming the configuration is safe.
 
 ## Current scope
 
