@@ -1,6 +1,6 @@
 # Server / SSH scanning
 
-Project Blacklight can perform a small read-only security baseline against a remote Linux server over SSH.
+Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline configuration and host-network visibility can report coverage independently.
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
@@ -31,9 +31,29 @@ It runs SSH with `BatchMode=yes`, so the scanner will not stop and ask for a pas
 
 Blacklight does not disable host-key verification. A new host should be verified and trusted through normal OpenSSH workflow before an automated Blacklight scan.
 
-## First baseline checks
+## Scanner selection
 
-The first server scanner is intentionally small. It currently inspects:
+Run every current server scanner:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit
+```
+
+Run only the original configuration baseline:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service baseline
+```
+
+Run only host-network visibility:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service network
+```
+
+## Baseline checks
+
+The `baseline` scanner currently inspects:
 
 - successful SSH connectivity and Linux platform metadata
 - explicit `PermitRootLogin yes`
@@ -44,6 +64,23 @@ The first server scanner is intentionally small. It currently inspects:
 - world-writable `/var/run/docker.sock`, when the socket exists
 
 The remote commands are fixed by Blacklight and are intended only to read configuration or metadata. The scanner does not modify packages, users, SSH configuration, firewall rules, services, or files.
+
+## Network visibility
+
+The `network` scanner currently inspects:
+
+- TCP/UDP listening sockets using `ss`, with `netstat` as a fallback
+- whether listeners are loopback-only, bound to all interfaces, or bound to a specific non-loopback address
+- UFW state when `ufw` is available
+- firewalld state when `firewall-cmd` is available
+- nftables INPUT/FORWARD hook visibility when `nft` is readable
+- iptables INPUT/FORWARD filtering when `iptables` is readable
+
+Listening sockets are exposure inventory and are reported as `INFO` rather than automatically becoming vulnerabilities. A service bound beyond loopback may be intentional, and Blacklight does not infer public-internet reachability or application identity from an address and port alone.
+
+The firewall check reports `PASS` only when a supported firewall manager reports active state or readable nftables/iptables evidence shows INPUT/FORWARD filtering. It reports `MEDIUM` when the supported backends that can be inspected show inactive state or no observed input filtering. If installed tooling cannot be read, the check becomes `ERROR` so scan coverage reflects the uncertainty.
+
+External controls such as cloud security groups, hardware/network firewalls, service meshes, or unsupported host firewall implementations are outside this check.
 
 ## Important SSH configuration boundary
 
@@ -61,6 +98,6 @@ If the account cannot read a piece of configuration, Blacklight should preserve 
 
 ## Current scope
 
-This phase supports Linux only. It is a configuration baseline, not a network vulnerability scanner, exploit framework, patch-management system, or replacement for authenticated vulnerability-management platforms.
+This phase supports Linux only. It provides configuration and host-network visibility, not a remote exploit scanner, service fingerprinting engine, patch-management system, or replacement for authenticated vulnerability-management platforms.
 
 Future server checks can be added incrementally while keeping the same deterministic finding model, coverage reporting, severity gates, JSON/HTML reports, and read-only target philosophy.
