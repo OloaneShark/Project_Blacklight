@@ -8,13 +8,13 @@ Blacklight reveals security weaknesses that are easy to miss in cloud and worklo
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, local Kubernetes workload manifests, and a read-only Linux server baseline over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, local Kubernetes workload manifests, and read-only Linux server configuration/network checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
 The Dockerfile scanner statically detects root runtime configuration, implicit/latest base-image tags, secret-like values embedded through ARG/ENV, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. It does not require a Docker daemon. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
 
 The Kubernetes scanner statically checks workload manifests for privileged containers, explicit UID 0, privilege escalation, host namespace sharing, hostPath volumes, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values. It does not require cluster credentials. See [docs/kubernetes-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/kubernetes-scanning.md).
 
-The server scanner uses the local OpenSSH client in non-interactive mode to inspect a remote Linux host with fixed read-only commands. The first baseline checks explicit insecure SSH directives, SSH configuration file permissions, additional UID 0 accounts, and world-writable Docker socket access. See [docs/server-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/server-scanning.md).
+The server provider uses the local OpenSSH client in non-interactive mode with fixed read-only commands. Its `baseline` scanner checks explicit insecure SSH directives, SSH configuration file permissions, additional UID 0 accounts, and world-writable Docker socket access. Its `network` scanner inventories non-loopback listening sockets and inspects supported local firewall controls without claiming that a listening port is automatically a vulnerability or publicly reachable. See [docs/server-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/server-scanning.md).
 
 The IAM scanner checks root MFA, long-lived access-key age/usage, policies attached directly to IAM users, groups, and roles, and IAM role trust policies. It flags unconditional identity-policy `Allow` statements that grant both `Action: "*"` and `Resource: "*"`, plus role trust statements with a wildcard principal and STS assume-role action but no condition. These checks report directly observed policy evidence; they do not claim to calculate final effective permissions or every prerequisite for successful role assumption.
 
@@ -132,6 +132,13 @@ Scan a remote Linux server over SSH:
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
+```
+
+Run one server scanner:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service baseline
+blacklight scan server --host server.example.com --user blacklight-audit --service network
 ```
 
 Scan one service:
@@ -256,7 +263,8 @@ blacklight_security/
     ├── kubernetes/
     │   └── manifests.py
     └── server/
-        └── linux.py
+        ├── linux.py
+        └── network.py
 ```
 
 The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, isolates per-scanner AWS API failures, tracks coverage, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes successfully observed security findings after detection. The coverage layer describes how completely the selected scope was inspected without changing the risk score. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
@@ -265,11 +273,11 @@ The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_fl
 
 ## Roadmap status
 
-The Blacklight core is implemented as a source-based CLI project: deterministic AWS scanning, Dockerfile scanning, Kubernetes manifest scanning, shared risk/coverage/gates, JSON/HTML reporting, contributor documentation, and an optional external analyst interface.
+The Blacklight core is implemented as a source-based CLI project: deterministic AWS scanning, Dockerfile scanning, Kubernetes manifest scanning, read-only Linux server scanning, shared risk/coverage/gates, JSON/HTML reporting, contributor documentation, and an optional external analyst interface.
 
 Future expansion is intentionally a new phase rather than unfinished core work:
 
-- deeper Linux server baseline checks and reusable read-only target profiles
+- deeper Linux server checks for updates, privilege boundaries, authentication, and reusable read-only target profiles
 - deeper AWS/Docker/Kubernetes checks
 - live Kubernetes cluster and Docker-daemon inspection
 - additional cloud providers
