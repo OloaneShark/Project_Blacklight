@@ -52,7 +52,7 @@ _AUTO_UPDATES_COMMAND = (
     "else printf 'BLACKLIGHT_FAMILY=unknown\\n'; fi"
 )
 
-_STAT_RE = re.compile(r"^(?P<path>[^|]+)\\|(?P<mode>[0-7]{3,4})\\|(?P<owner>[^|]+)\\|(?P<group>[^|]+)$")
+_STAT_RE = re.compile(r"^(?P<path>[^|]+)\|(?P<mode>[0-7]{3,4})\|(?P<owner>[^|]+)\|(?P<group>[^|]+)$")
 
 
 @dataclass(frozen=True, slots=True)
