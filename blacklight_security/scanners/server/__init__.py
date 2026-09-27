@@ -10,4 +10,7 @@ __all__ = [
     "ServerScanTarget",
     "SSHCommandRunner",
     "SSHExecutionError",
+    "ServerNetworkScanner",
 ]
+
+from blacklight_security.scanners.server.network import ServerNetworkScanner
