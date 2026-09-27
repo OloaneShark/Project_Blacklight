@@ -51,6 +51,12 @@ Run only host-network visibility:
 blacklight scan server --host server.example.com --user blacklight-audit --service network
 ```
 
+Run only host-hardening checks:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service hardening
+```
+
 ## Baseline checks
 
 The `baseline` scanner currently inspects:
@@ -81,6 +87,16 @@ Listening sockets are exposure inventory and are reported as `INFO` rather than 
 The firewall check reports `PASS` only when a supported firewall manager reports active state or readable nftables/iptables evidence shows INPUT/FORWARD filtering. It reports `MEDIUM` when the supported backends that can be inspected show inactive state or no observed input filtering. If installed tooling cannot be read, the check becomes `ERROR` so scan coverage reflects the uncertainty.
 
 External controls such as cloud security groups, hardware/network firewalls, service meshes, or unsupported host firewall implementations are outside this check.
+
+## Host hardening
+
+The `hardening` scanner currently inspects:
+
+- ownership and write permissions for `/etc/passwd`, `/etc/group`, `/etc/shadow`, `/etc/sudoers`, and observed `/etc/sudoers.d/*` entries
+- the connected SSH account's home, `.ssh`, and `authorized_keys` ownership/write permissions
+- supported automatic-update posture for APT/unattended-upgrades and DNF automatic updates using existing local configuration and timer state
+
+The hardening scanner is read-only. It does not run package refresh/update commands, invoke `sudo`, change permissions, or enable timers. If Blacklight cannot prove that supported automatic security updates are enabled or explicitly disabled, it reports `INFO` rather than guessing. Another enterprise patch-management system may own that responsibility.
 
 ## Important SSH configuration boundary
 
