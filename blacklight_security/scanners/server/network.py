@@ -41,9 +41,9 @@ _FIREWALL_COMMANDS = {
     ),
 }
 
-_NFT_INPUT_HOOK_RE = re.compile(r"\\bhook\\s+(?:input|forward)\\b", re.IGNORECASE)
+_NFT_INPUT_HOOK_RE = re.compile(r"\bhook\s+(?:input|forward)\b", re.IGNORECASE)
 _IPTABLES_FILTER_RE = re.compile(
-    r"^(?:-A\\s+(?:INPUT|FORWARD)\\b|-P\\s+(?:INPUT|FORWARD)\\s+DROP\\b)",
+    r"^(?:-A\s+(?:INPUT|FORWARD)\b|-P\s+(?:INPUT|FORWARD)\s+DROP\b)",
     re.MULTILINE,
 )
 
@@ -131,7 +131,7 @@ class ServerNetworkScanner:
 
     def _check_listening_sockets(self, result: CommandResult) -> Finding:
         tool, body = self._socket_tool_and_body(result.stdout)
-        if result.returncode != 0 or tool == "none":
+        if result.returncode != 0 or tool not in {"ss", "netstat"}:
             return self._error(
                 "server.network.listening_sockets",
                 "Blacklight could not inspect listening network sockets",
@@ -214,7 +214,7 @@ class ServerNetworkScanner:
                 evidence={"backends": states},
             )
 
-        uncertain_states = {"unreadable", "transport-error"}
+        uncertain_states = {"unreadable", "transport-error", "unknown"}
         if any(state in uncertain_states for state in states.values()):
             return self._error(
                 "server.network.firewall_controls",
