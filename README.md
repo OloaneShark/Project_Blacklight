@@ -264,7 +264,8 @@ blacklight_security/
     │   └── manifests.py
     └── server/
         ├── linux.py
-        └── network.py
+        ├── network.py
+        └── hardening.py
 ```
 
 The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, isolates per-scanner AWS API failures, tracks coverage, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes successfully observed security findings after detection. The coverage layer describes how completely the selected scope was inspected without changing the risk score. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
