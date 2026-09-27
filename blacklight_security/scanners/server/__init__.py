@@ -4,10 +4,12 @@ from blacklight_security.scanners.server.linux import (
     SSHCommandRunner,
     SSHExecutionError,
 )
+from blacklight_security.scanners.server.hardening import ServerHardeningScanner
 from blacklight_security.scanners.server.network import ServerNetworkScanner
 
 __all__ = [
     "ServerBaselineScanner",
+    "ServerHardeningScanner",
     "ServerNetworkScanner",
     "ServerScanTarget",
     "SSHCommandRunner",
