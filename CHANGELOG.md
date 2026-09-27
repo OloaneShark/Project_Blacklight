@@ -9,6 +9,8 @@ All notable changes to Project Blacklight will be documented here.
 - Read-only Linux server baseline scanning through `blacklight scan server --host <host>` using the local OpenSSH client in non-interactive mode.
 - Deterministic checks for explicit insecure SSH directives, SSH daemon configuration write permissions, additional UID 0 accounts, and world-writable Docker socket access.
 - Server scanner documentation plus scanner, CLI, transport, validation, and registry tests.
+- Separate `server.network` scanner for non-loopback TCP/UDP listener inventory and supported local firewall visibility across UFW, firewalld, nftables, and iptables.
+- Server-network tests for socket parsing, firewall-state boundaries, inspection failures, scanner selection, and CI security-gate behavior.
 
 ### Removed
 

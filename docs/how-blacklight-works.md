@@ -42,6 +42,10 @@ The Docker provider statically parses Dockerfiles from a local file or directory
 
 The Kubernetes provider statically parses workload YAML from a local file or directory. It does not need cluster credentials.
 
+### Server
+
+The server provider uses the local OpenSSH client with fixed read-only commands against Linux targets. Registered server scanners currently separate configuration-baseline checks from host-network visibility so coverage can identify which part of a server assessment was incomplete.
+
 ## Findings
 
 Every security result becomes a normalized `Finding` with:
@@ -57,7 +61,7 @@ Every security result becomes a normalized `Finding` with:
 - remediation
 - deterministic evidence
 
-That common model is why AWS, Docker, and Kubernetes can all use the same reporting and CI/CD logic.
+That common model is why AWS, Docker, Kubernetes, and Linux server scanners can all use the same reporting and CI/CD logic.
 
 ## Risk and coverage are separate
 
@@ -106,18 +110,18 @@ There is no desktop application, native executable, release installer, PyPI publ
 
 The registry/runner/finding architecture is intentionally reusable.
 
-A future server scanner can follow the same model:
+The current server provider already demonstrates the pattern:
 
 ```text
-server connection/profile
+SSH server target
         ↓
-read-only server evidence
+fixed read-only evidence collection
         ↓
-server scanner
+baseline / network scanner
         ↓
 Finding objects
         ↓
 existing risk/report/gate pipeline
 ```
 
-That means future scanners can add new target types without rebuilding Blacklight's findings, risk, coverage, gates, or reporting system.
+Additional server scanners or entirely new target types can follow the same contract without rebuilding Blacklight's findings, risk, coverage, gates, or reporting system.
