@@ -38,6 +38,8 @@ def test_server_cli_runs_baseline_and_security_gate(capsys):
                 "server",
                 "--host",
                 "server.example",
+                "--service",
+                "baseline",
                 "--user",
                 "audit",
                 "--fail-on",
@@ -57,3 +59,51 @@ def test_server_cli_rejects_invalid_target(capsys):
     output = capsys.readouterr()
     assert exit_code == 2
     assert "Blacklight server target error" in output.err
+
+
+def test_server_cli_can_run_network_scanner_and_gate_firewall_gap(capsys):
+    def fake_run(argv, **kwargs):
+        command = argv[-1]
+        if "BLACKLIGHT_OK" in command:
+            return subprocess.CompletedProcess([], 0, "BLACKLIGHT_OK\nLinux\nprod-1\n", "")
+        if "ss -H -lntu" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_TOOL=ss\n"
+                "tcp LISTEN 0 4096 0.0.0.0:22 0.0.0.0:*\n",
+                "",
+            )
+        if "ufw status" in command:
+            return subprocess.CompletedProcess([], 0, "Status: inactive\n", "")
+        if "firewall-cmd --state" in command:
+            return subprocess.CompletedProcess([], 252, "", "not running")
+        if "nft list ruleset" in command:
+            return subprocess.CompletedProcess([], 0, "table inet local { }\n", "")
+        if "iptables -S" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "-P INPUT ACCEPT\n-P FORWARD ACCEPT\n-P OUTPUT ACCEPT\n",
+                "",
+            )
+        raise AssertionError(f"unexpected SSH command: {command}")
+
+    with patch("blacklight_security.scanners.server.linux.subprocess.run", side_effect=fake_run):
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--host",
+                "server.example",
+                "--service",
+                "network",
+                "--fail-on",
+                "medium",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: network" in output.out
+    assert "No active supported local firewall control was observed" in output.out
