@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Linux server `accounts` scanner for duplicate UIDs, login-capable system accounts, selected privileged-group memberships, broad direct `NOPASSWD: ALL` sudo rules, and sudoers readability coverage.
+- Privilege-inventory handling that distinguishes normal administrative groups from Docker/LXD root-equivalent management access without assuming either is unintended.
+- Account scanner unit, registry, CLI gate, and server-documentation coverage.
+
+### Added
+
 - Linux server `hardening` scanner for sensitive system-file permissions, connected-account SSH key-path permissions, and supported automatic security-update posture.
 - Read-only APT/DNF update-posture inspection that never refreshes repositories, installs packages, invokes sudo, or mutates timers.
 - Host-hardening scanner registration, tests, and server-scanning documentation.
