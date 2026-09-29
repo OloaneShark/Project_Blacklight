@@ -1,6 +1,6 @@
 # Server / SSH scanning
 
-Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline configuration and host-network visibility can report coverage independently.
+Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, and account/privilege coverage can be reported independently.
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
@@ -57,6 +57,12 @@ Run only host-hardening checks:
 blacklight scan server --host server.example.com --user blacklight-audit --service hardening
 ```
 
+Run only account and privilege checks:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service accounts
+```
+
 ## Baseline checks
 
 The `baseline` scanner currently inspects:
@@ -98,6 +104,21 @@ The `hardening` scanner currently inspects:
 
 The hardening scanner is read-only. It does not run package refresh/update commands, invoke `sudo`, change permissions, or enable timers. If Blacklight cannot prove that supported automatic security updates are enabled or explicitly disabled, it reports `INFO` rather than guessing. Another enterprise patch-management system may own that responsibility.
 
+## Account and privilege auditing
+
+The `accounts` scanner currently inspects:
+
+- duplicate numeric UIDs in the readable account database
+- non-root system accounts below `UID_MIN` that use a shell listed in `/etc/shells`
+- non-root membership in selected administrative groups (`sudo`, `wheel`, `admin`)
+- non-root Docker/LXD management-group membership, which can provide root-equivalent host control in common configurations
+- direct broad sudoers rules matching an explicit `NOPASSWD: ALL` grant on `ALL` hosts
+- whether existing sudoers files were readable to the audit account
+
+Administrative-group membership is normally reported as inventory rather than an automatic vulnerability. Docker/LXD management membership is elevated because those groups commonly expose root-equivalent host control. Broad passwordless-sudo detection intentionally matches only direct, unambiguous rules; Blacklight does not attempt to fully evaluate sudo aliases, included policy semantics, or every possible sudoers expression.
+
+The scanner does not read password hashes or claim account lock/password state when `/etc/shadow` data is unavailable. If sudoers files exist but cannot be read, Blacklight records an `ERROR` coverage gap instead of treating the absence of visible rules as safe.
+
 ## Important SSH configuration boundary
 
 Blacklight reads `/etc/ssh/sshd_config` and readable files matching `/etc/ssh/sshd_config.d/*.conf`.
@@ -108,12 +129,12 @@ This first scanner deliberately does not run privileged `sshd -T` commands or cl
 
 ## Permissions
 
-The audit account should have ordinary read access to the information Blacklight inspects. The baseline scanner does not require root or passwordless sudo. Some firewall tools restrict ruleset/status visibility to privileged users; Blacklight does not elevate with `sudo`. If the audit account cannot inspect an installed firewall backend, the network scanner records an `ERROR` coverage gap rather than silently claiming the host is filtered or unfiltered.
+The audit account should have ordinary read access to the information Blacklight inspects. The baseline scanner does not require root or passwordless sudo. Some firewall tools and sudoers files restrict visibility to privileged users; Blacklight does not elevate with `sudo`. If the audit account cannot inspect an installed firewall backend or existing sudoers configuration, the relevant scanner records an `ERROR` coverage gap rather than silently claiming the host is safe.
 
 If the account cannot read a piece of configuration, Blacklight preserves that limitation rather than silently claiming the configuration is safe.
 
 ## Current scope
 
-This phase supports Linux only. It provides configuration and host-network visibility, not a remote exploit scanner, service fingerprinting engine, patch-management system, or replacement for authenticated vulnerability-management platforms.
+This phase supports Linux only. It provides configuration, host-network, hardening, and account/privilege visibility, not a remote exploit scanner, service fingerprinting engine, password cracker, patch-management system, or replacement for authenticated vulnerability-management platforms.
 
 Future server checks can be added incrementally while keeping the same deterministic finding model, coverage reporting, severity gates, JSON/HTML reports, and read-only target philosophy.
