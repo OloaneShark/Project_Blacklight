@@ -107,3 +107,52 @@ def test_server_cli_can_run_network_scanner_and_gate_firewall_gap(capsys):
     assert exit_code == 1
     assert "Scanners: network" in output.out
     assert "No active supported local firewall control was observed" in output.out
+
+
+def test_server_cli_can_run_accounts_scanner_and_gate_broad_nopasswd(capsys):
+    def fake_run(argv, **kwargs):
+        command = argv[-1]
+        if "BLACKLIGHT_OK" in command:
+            return subprocess.CompletedProcess([], 0, "BLACKLIGHT_OK\nLinux\nprod-1\n", "")
+        if "BLACKLIGHT_UID_MIN" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_UID_MIN=1000\n"
+                "BLACKLIGHT_UID_MIN_SOURCE=login.defs\n"
+                "BLACKLIGHT_SHELL=/bin/bash\n"
+                "BLACKLIGHT_PASSWD_BEGIN\n"
+                "root:x:0:0:root:/root:/bin/bash\n"
+                "alice:x:1000:1000:Alice:/home/alice:/bin/bash\n",
+                "",
+            )
+        if "BLACKLIGHT_GROUP" in command:
+            return subprocess.CompletedProcess([], 0, "BLACKLIGHT_GROUP=sudo:x:27:alice\n", "")
+        if "BLACKLIGHT_SUDO" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_SUDO_READABLE=/etc/sudoers\n"
+                "BLACKLIGHT_SUDO_RULE=/etc/sudoers|alice ALL=(ALL:ALL) NOPASSWD: ALL\n",
+                "",
+            )
+        raise AssertionError(f"unexpected SSH command: {command}")
+
+    with patch("blacklight_security.scanners.server.linux.subprocess.run", side_effect=fake_run):
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--host",
+                "server.example",
+                "--service",
+                "accounts",
+                "--fail-on",
+                "high",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: accounts" in output.out
+    assert "Broad passwordless sudo rules were observed" in output.out
