@@ -6,6 +6,13 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Linux server `packages` scanner for cache-only APT and DNF pending-update visibility.
+- APT security-origin detection when simulated candidate updates explicitly reference `-security` repositories.
+- Package metadata snapshot evidence that records Blacklight did not refresh repositories or install packages.
+- Package scanner unit, registry, CLI gate, and server-documentation coverage.
+
+### Added
+
 - Linux server `auth` scanner for selected PAM authentication policy, connected-account password state, and best-effort local shadow account-state classification.
 - Explicit detection for active `pam_permit.so`, `pam_unix.so nullok`, and empty local password fields without returning password hashes.
 - Deterministic `server.auth.empty_password_with_pam_nullok` risk correlation when both conditions occur on the same server.

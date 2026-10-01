@@ -209,3 +209,43 @@ def test_server_cli_can_run_auth_scanner_and_gate_null_password_policy(capsys):
     assert exit_code == 1
     assert "Scanners: auth" in output.out
     assert "PAM explicitly allows null passwords" in output.out
+
+
+def test_server_cli_can_run_package_scanner_and_gate_security_updates(capsys):
+    def fake_run(argv, **kwargs):
+        command = argv[-1]
+        if "BLACKLIGHT_OK" in command:
+            return subprocess.CompletedProcess([], 0, "BLACKLIGHT_OK\nLinux\nprod-1\n", "")
+        if "command -v apt-get" in command and "command -v dnf" in command:
+            return subprocess.CompletedProcess([], 0, "apt\n", "")
+        if "apt-get -s" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_FAMILY=apt\n"
+                "BLACKLIGHT_CACHE_AGE=1200\n"
+                "BLACKLIGHT_RC=0\n"
+                "BLACKLIGHT_UPDATE=Inst openssl [3.0.1] "
+                "(3.0.2 Ubuntu:24.04/noble-security [amd64])\n",
+                "",
+            )
+        raise AssertionError(f"unexpected SSH command: {command}")
+
+    with patch("blacklight_security.scanners.server.linux.subprocess.run", side_effect=fake_run):
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--host",
+                "server.example",
+                "--service",
+                "packages",
+                "--fail-on",
+                "medium",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: packages" in output.out
+    assert "pending security-origin updates" in output.out

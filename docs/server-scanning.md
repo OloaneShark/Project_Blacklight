@@ -1,6 +1,6 @@
 # Server / SSH scanning
 
-Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state coverage can be reported independently.
+Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state and package-update coverage can be reported independently.
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
@@ -67,6 +67,12 @@ Run only authentication-state checks:
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit --service auth
+```
+
+Run only cached package-update visibility:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service packages
 ```
 
 ## Baseline checks
@@ -138,6 +144,16 @@ The `auth` scanner currently inspects:
 Blacklight never returns the password-hash field from `/etc/shadow`. It converts readable shadow entries into coarse states such as `locked`, `set`, or `empty` plus non-secret aging metadata. When `/etc/shadow` is not readable, whole-host empty-password state is reported as unavailable instead of inferred.
 
 An empty password field is not treated as proof that remote login will succeed. PAM and service-specific authentication policy still matter. The risk engine adds an explainable correlation when the same host has both an observed empty local password field and an explicit PAM `nullok` path.
+
+## Cached package-update visibility
+
+The `packages` scanner currently supports APT and DNF using only repository/package metadata already present on the host.
+
+For APT, Blacklight runs a simulated `apt-get` upgrade with locking disabled and parses candidate updates. If a simulated candidate line explicitly references a repository containing `-security`, Blacklight reports that package as a pending security-origin update. It does not infer CVE severity from the package name alone.
+
+For DNF, Blacklight uses `dnf --cacheonly check-update`. The first DNF phase inventories pending cached updates but does not classify them as security advisories until advisory metadata is explicitly inspected in a future phase.
+
+Blacklight does not run `apt update`, `dnf makecache`, install packages, modify repository configuration, or refresh metadata. Therefore a result of "no pending updates" means only that the current local cache contains no newer candidate; it is not proof that upstream repositories have nothing newer.
 
 ## Important SSH configuration boundary
 

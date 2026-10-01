@@ -48,6 +48,7 @@ def load_builtin_scanners() -> None:
         ServerBaselineScanner,
         ServerHardeningScanner,
         ServerNetworkScanner,
+        ServerPackagesScanner,
     )
 
     for name, scanner_cls in {
@@ -68,6 +69,7 @@ def load_builtin_scanners() -> None:
     register_scanner("server", "baseline", ServerBaselineScanner)
     register_scanner("server", "hardening", ServerHardeningScanner)
     register_scanner("server", "network", ServerNetworkScanner)
+    register_scanner("server", "packages", ServerPackagesScanner)
 
     _BUILTINS_LOADED = True
 
