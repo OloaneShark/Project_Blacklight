@@ -156,3 +156,56 @@ def test_server_cli_can_run_accounts_scanner_and_gate_broad_nopasswd(capsys):
     assert exit_code == 1
     assert "Scanners: accounts" in output.out
     assert "Broad passwordless sudo rules were observed" in output.out
+
+
+def test_server_cli_can_run_auth_scanner_and_gate_null_password_policy(capsys):
+    def fake_run(argv, **kwargs):
+        command = argv[-1]
+        if "BLACKLIGHT_OK" in command:
+            return subprocess.CompletedProcess([], 0, "BLACKLIGHT_OK\nLinux\nprod-1\n", "")
+        if "BLACKLIGHT_PAM_READABLE" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_PAM_READABLE=/etc/pam.d/common-auth\n"
+                "BLACKLIGHT_PAM_NULLOK=/etc/pam.d/common-auth|"
+                "auth required pam_unix.so nullok\n",
+                "",
+            )
+        if "BLACKLIGHT_UID_MIN" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_UID_MIN=1000\n"
+                "BLACKLIGHT_UID_MIN_SOURCE=login.defs\n"
+                "BLACKLIGHT_SHELL=/bin/bash\n"
+                "BLACKLIGHT_PASSWD_BEGIN\n"
+                "root:x:0:0:root:/root:/bin/bash\n"
+                "alice:x:1000:1000:Alice:/home/alice:/bin/bash\n"
+                "BLACKLIGHT_PASSWD_END\n"
+                "BLACKLIGHT_SELF_PASSWD=alice P 2026-09-30 0 99999 7 -1\n"
+                "BLACKLIGHT_SHADOW_READABLE=1\n"
+                "BLACKLIGHT_SHADOW_ACCOUNT=root|locked|20000|99999||\n"
+                "BLACKLIGHT_SHADOW_ACCOUNT=alice|empty|20000|99999||\n",
+                "",
+            )
+        raise AssertionError(f"unexpected SSH command: {command}")
+
+    with patch("blacklight_security.scanners.server.linux.subprocess.run", side_effect=fake_run):
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--host",
+                "server.example",
+                "--service",
+                "auth",
+                "--fail-on",
+                "high",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: auth" in output.out
+    assert "PAM explicitly allows null passwords" in output.out
