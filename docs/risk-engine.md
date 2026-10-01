@@ -77,3 +77,13 @@ This prevents unrelated resources in different services from correlating merely 
 `ERROR` findings do not currently add risk points. They represent checks Blacklight could not complete rather than proof that the underlying resource is insecure.
 
 Scan status can still become `PARTIAL` when an `ERROR` finding exists, so reporting can distinguish confirmed security findings from incomplete inspection coverage.
+
+
+## Linux server authentication correlation
+
+Blacklight adds a deterministic server correlation when both of these findings occur on the same Linux server:
+
+- `server.auth.empty_password_accounts`
+- `server.auth.pam_null_passwords`
+
+The correlation ID is `server.auth.empty_password_with_pam_nullok` and adds 20 risk points. It means Blacklight observed both an empty local password field and a PAM `pam_unix` authentication path explicitly configured with `nullok`. This increases risk but does not independently prove that a specific remote service will accept an empty password.

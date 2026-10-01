@@ -1,6 +1,6 @@
 # Server / SSH scanning
 
-Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, and account/privilege coverage can be reported independently.
+Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state coverage can be reported independently.
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
@@ -63,6 +63,12 @@ Run only account and privilege checks:
 blacklight scan server --host server.example.com --user blacklight-audit --service accounts
 ```
 
+Run only authentication-state checks:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service auth
+```
+
 ## Baseline checks
 
 The `baseline` scanner currently inspects:
@@ -118,6 +124,20 @@ The `accounts` scanner currently inspects:
 Administrative-group membership is normally reported as inventory rather than an automatic vulnerability. Docker/LXD management membership is elevated because those groups commonly expose root-equivalent host control. Broad passwordless-sudo detection intentionally matches only direct, unambiguous rules; Blacklight does not attempt to fully evaluate sudo aliases, included policy semantics, or every possible sudoers expression.
 
 The scanner does not read password hashes or claim account lock/password state when `/etc/shadow` data is unavailable. If sudoers files exist but cannot be read, Blacklight records an `ERROR` coverage gap instead of treating the absence of visible rules as safe.
+
+## Authentication-state visibility
+
+The `auth` scanner currently inspects:
+
+- selected login-related PAM service files for active `pam_permit.so` authentication rules
+- explicit `pam_unix.so nullok` authentication policy
+- the connected account's own `passwd -S` state when available
+- `/etc/shadow` only when it is already readable to the audit account
+- empty local password fields without returning password hashes
+
+Blacklight never returns the password-hash field from `/etc/shadow`. It converts readable shadow entries into coarse states such as `locked`, `set`, or `empty` plus non-secret aging metadata. When `/etc/shadow` is not readable, whole-host empty-password state is reported as unavailable instead of inferred.
+
+An empty password field is not treated as proof that remote login will succeed. PAM and service-specific authentication policy still matter. The risk engine adds an explainable correlation when the same host has both an observed empty local password field and an explicit PAM `nullok` path.
 
 ## Important SSH configuration boundary
 

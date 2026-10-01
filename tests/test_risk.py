@@ -152,3 +152,34 @@ def test_iam_role_trust_does_not_correlate_across_different_roles():
     assessment = assess_risk(findings)
 
     assert "aws.iam.broad_role_permissions_and_trust" not in correlation_ids(assessment)
+
+
+def test_server_empty_password_and_pam_nullok_correlate():
+    findings = [
+        Finding(
+            check_id="server.auth.empty_password_accounts",
+            provider="server",
+            service="auth",
+            resource_type="linux_server",
+            resource_id="audit@server.example:22",
+            severity=Severity.HIGH,
+            title="test",
+            description="test",
+        ),
+        Finding(
+            check_id="server.auth.pam_null_passwords",
+            provider="server",
+            service="auth",
+            resource_type="linux_server",
+            resource_id="audit@server.example:22",
+            severity=Severity.HIGH,
+            title="test",
+            description="test",
+        ),
+    ]
+
+    assessment = assess_risk(findings)
+
+    assert "server.auth.empty_password_with_pam_nullok" in correlation_ids(assessment)
+    assert assessment.base_score == 40
+    assert assessment.score == 60
