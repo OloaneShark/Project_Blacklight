@@ -86,6 +86,22 @@ def assess_risk(findings: list[Finding]) -> RiskAssessment:
 
     by_resource = _same_resource_checks(actionable)
     for (provider, service, resource_id), checks in by_resource.items():
+        if provider == "server" and service == "auth" and {
+            "server.auth.empty_password_accounts",
+            "server.auth.pam_null_passwords",
+        }.issubset(checks):
+            correlations.append(
+                Correlation(
+                    "server.auth.empty_password_with_pam_nullok",
+                    20,
+                    (
+                        "The same Linux server has an observed empty local password field and "
+                        "a PAM pam_unix authentication path explicitly configured with nullok."
+                    ),
+                    (resource_id,),
+                )
+            )
+
         if provider != "aws":
             continue
 
