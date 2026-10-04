@@ -38,6 +38,13 @@ _DNF_UPDATES_COMMAND = (
     "NF >= 3 && $1 !~ /^Last/ && $1 !~ /^Obsoleting/ "
     "{print \"BLACKLIGHT_UPDATE=\" $0}'"
 )
+_DNF_SECURITY_ADVISORIES_COMMAND = (
+    "out=$(dnf -q --cacheonly updateinfo list --security 2>&1); rc=$?; "
+    "printf 'BLACKLIGHT_ADVISORY_RC=%s\\n' \"$rc\"; "
+    "printf '%s\\n' \"$out\" | awk '"
+    "NF >= 3 && $2 ~ /\\/Sec[.]$/ "
+    "{print \"BLACKLIGHT_SECURITY_ADVISORY=\" $0}'"
+)
 
 _APT_PACKAGE_RE = re.compile(r"^Inst\s+(?P<package>\S+)")
 
