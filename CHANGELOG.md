@@ -6,6 +6,13 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Reusable Linux server target profiles loaded from TOML with a default `~/.blacklight/server-targets.toml` path.
+- `--target-profile` and `--targets-file` server CLI options with command-line connection overrides.
+- Strict profile schema that permits connection metadata only and rejects password/secret/private-key-content fields.
+- Server profile example, loader tests, CLI resolution tests, and target-profile scan metadata.
+
+### Added
+
 - Cache-only DNF `updateinfo` security-advisory inspection for Linux server package scans.
 - DNF advisory evidence including advisory ID, vendor severity label, affected package, deduplication, and explicit coverage errors when advisory metadata cannot be inspected.
 
