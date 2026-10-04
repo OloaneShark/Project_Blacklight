@@ -343,8 +343,9 @@ connect_timeout = 7
             ]
         )
 
-    capsys.readouterr()
+    output = capsys.readouterr()
     assert exit_code == 0
+    assert "Target profile: prod" in output.out
     argv = run.call_args_list[0].args[0]
     assert ["-p", "2200"] == argv[5:7]
     assert "ConnectTimeout=9" in argv
