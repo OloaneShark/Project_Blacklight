@@ -61,6 +61,8 @@ def render_console(
                     f"Identity: {identity.get('status') or 'UNAVAILABLE'}",
                 ]
             )
+        elif metadata["provider"] == "server" and context.get("profile"):
+            lines.append(f"Target profile: {context['profile']}")
         lines.extend(
             [
                 f"Scanners: {', '.join(metadata['scanners']) or 'none'}",
