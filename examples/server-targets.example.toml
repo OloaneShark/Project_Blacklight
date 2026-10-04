@@ -1,0 +1,18 @@
+# Project Blacklight reusable server targets
+#
+# Copy this file to ~/.blacklight/server-targets.toml or pass a custom path
+# with --targets-file. Store connection metadata only. Do not put passwords,
+# tokens, private-key contents, or other secrets in this file.
+
+[targets.production]
+host = "server.example.com"
+user = "blacklight-audit"
+port = 22
+identity_file = "~/.ssh/blacklight_audit"
+connect_timeout = 10
+
+[targets.staging]
+host = "staging.example.com"
+user = "blacklight-audit"
+port = 2222
+connect_timeout = 10
