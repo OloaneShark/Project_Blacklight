@@ -6,6 +6,11 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Cache-only DNF `updateinfo` security-advisory inspection for Linux server package scans.
+- DNF advisory evidence including advisory ID, vendor severity label, affected package, deduplication, and explicit coverage errors when advisory metadata cannot be inspected.
+
+### Added
+
 - Linux server `packages` scanner for cache-only APT and DNF pending-update visibility.
 - APT security-origin detection when simulated candidate updates explicitly reference `-security` repositories.
 - Package metadata snapshot evidence that records Blacklight did not refresh repositories or install packages.
