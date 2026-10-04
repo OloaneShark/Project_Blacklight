@@ -151,7 +151,7 @@ The `packages` scanner currently supports APT and DNF using only repository/pack
 
 For APT, Blacklight runs a simulated `apt-get` upgrade with locking disabled and parses candidate updates. If a simulated candidate line explicitly references a repository containing `-security`, Blacklight reports that package as a pending security-origin update. It does not infer CVE severity from the package name alone.
 
-For DNF, Blacklight uses `dnf --cacheonly check-update`. The first DNF phase inventories pending cached updates but does not classify them as security advisories until advisory metadata is explicitly inspected in a future phase.
+For DNF, Blacklight uses `dnf --cacheonly check-update` for pending package inventory and `dnf --cacheonly updateinfo list --security` for cached security-advisory metadata. Advisory IDs, vendor severity labels, and affected package NEVRAs are retained as evidence. If updateinfo metadata cannot be inspected, Blacklight records a coverage error instead of claiming that no security advisories are pending.
 
 Blacklight does not run `apt update`, `dnf makecache`, install packages, modify repository configuration, or refresh metadata. Therefore a result of "no pending updates" means only that the current local cache contains no newer candidate; it is not proof that upstream repositories have nothing newer.
 

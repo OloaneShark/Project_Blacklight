@@ -52,7 +52,7 @@ def test_apt_package_scanner_reports_cached_security_updates_without_refreshing(
     assert security.evidence["packages"][0]["package"] == "openssl"
 
 
-def test_dnf_package_scanner_accepts_check_update_exit_100():
+def test_dnf_package_scanner_accepts_check_update_exit_100_and_security_advisories():
     findings = _scan_with(
         CommandResult(0, "BLACKLIGHT_OK\nLinux\nprod-1", ""),
         CommandResult(0, "dnf", ""),
@@ -64,12 +64,29 @@ def test_dnf_package_scanner_accepts_check_update_exit_100():
             "BLACKLIGHT_UPDATE=curl.x86_64 8.0.1-2.el9 appstream",
             "",
         ),
+        CommandResult(
+            0,
+            "BLACKLIGHT_ADVISORY_RC=0\n"
+            "BLACKLIGHT_SECURITY_ADVISORY=RHSA-2026:1001 Important/Sec. "
+            "openssl-3.2.1-4.el9.x86_64\n"
+            "BLACKLIGHT_SECURITY_ADVISORY=RHSA-2026:1002 Moderate/Sec. "
+            "curl-8.0.1-2.el9.x86_64",
+            "",
+        ),
     )
 
     by_id = _by_id(findings)
     assert by_id["server.packages.pending_updates"].severity is Severity.INFO
     assert by_id["server.packages.pending_updates"].evidence["pending_count"] == 2
-    assert by_id["server.packages.security_updates"].severity is Severity.INFO
+
+    security = by_id["server.packages.security_updates"]
+    assert security.severity is Severity.MEDIUM
+    assert security.evidence["security_advisory_count"] == 2
+    assert security.evidence["advisories"][0] == {
+        "advisory_id": "RHSA-2026:1001",
+        "vendor_severity": "IMPORTANT",
+        "package": "openssl-3.2.1-4.el9.x86_64",
+    }
 
 
 def test_package_scanner_reports_error_when_cached_package_command_fails():
@@ -97,3 +114,46 @@ def test_package_scanner_reports_info_when_no_supported_manager_exists():
     assert len(findings) == 1
     assert findings[0].check_id == "server.packages.package_manager"
     assert findings[0].severity is Severity.INFO
+
+
+def test_dnf_security_advisory_failure_is_a_coverage_error():
+    findings = _scan_with(
+        CommandResult(0, "BLACKLIGHT_OK\nLinux\nprod-1", ""),
+        CommandResult(0, "dnf", ""),
+        CommandResult(
+            0,
+            "BLACKLIGHT_FAMILY=dnf\n"
+            "BLACKLIGHT_RC=100\n"
+            "BLACKLIGHT_UPDATE=openssl.x86_64 3.2.1-4.el9 baseos",
+            "",
+        ),
+        CommandResult(
+            0,
+            "BLACKLIGHT_ADVISORY_RC=1",
+            "cached updateinfo metadata unavailable",
+        ),
+    )
+
+    by_id = _by_id(findings)
+    assert by_id["server.packages.pending_updates"].severity is Severity.INFO
+    assert by_id["server.packages.security_updates"].severity is Severity.ERROR
+    assert (
+        by_id["server.packages.security_updates"].evidence[
+            "repository_metadata_refreshed"
+        ]
+        is False
+    )
+
+
+def test_dnf_security_advisories_are_deduplicated_by_advisory_and_package():
+    advisories = ServerPackagesScanner._parse_dnf_security_advisories(
+        [
+            "RHSA-2026:1001 Important/Sec. openssl-3.2.1-4.el9.x86_64",
+            "RHSA-2026:1001 Important/Sec. openssl-3.2.1-4.el9.x86_64",
+            "RHSA-2026:1001 Important/Sec. openssl-libs-3.2.1-4.el9.x86_64",
+            "not-a-security-row",
+        ]
+    )
+
+    assert len(advisories) == 2
+    assert advisories[1]["package"] == "openssl-libs-3.2.1-4.el9.x86_64"

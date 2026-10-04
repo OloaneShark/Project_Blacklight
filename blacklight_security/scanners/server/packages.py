@@ -38,6 +38,13 @@ _DNF_UPDATES_COMMAND = (
     "NF >= 3 && $1 !~ /^Last/ && $1 !~ /^Obsoleting/ "
     "{print \"BLACKLIGHT_UPDATE=\" $0}'"
 )
+_DNF_SECURITY_ADVISORIES_COMMAND = (
+    "out=$(dnf -q --cacheonly updateinfo list --security 2>&1); rc=$?; "
+    "printf 'BLACKLIGHT_ADVISORY_RC=%s\\n' \"$rc\"; "
+    "printf '%s\\n' \"$out\" | awk '"
+    "NF >= 3 && $2 ~ /\\/Sec[.]$/ "
+    "{print \"BLACKLIGHT_SECURITY_ADVISORY=\" $0}'"
+)
 
 _APT_PACKAGE_RE = re.compile(r"^Inst\s+(?P<package>\S+)")
 
@@ -108,9 +115,24 @@ class ServerPackagesScanner:
         except SSHExecutionError as error:
             return [self._transport_error("pending_updates", error)]
 
-        return self._check_updates(manager, result)
+        advisory_result: CommandResult | None = None
+        if manager == "dnf":
+            try:
+                advisory_result = self.executor.run(_DNF_SECURITY_ADVISORIES_COMMAND)
+            except SSHExecutionError as error:
+                return [
+                    *self._check_updates(manager, result),
+                    self._transport_error("security_advisories", error),
+                ]
 
-    def _check_updates(self, manager: str, result: CommandResult) -> list[Finding]:
+        return self._check_updates(manager, result, advisory_result)
+
+    def _check_updates(
+        self,
+        manager: str,
+        result: CommandResult,
+        advisory_result: CommandResult | None = None,
+    ) -> list[Finding]:
         family = manager
         command_rc: int | None = None
         cache_age: int | None = None
@@ -209,22 +231,7 @@ class ServerPackagesScanner:
                 )
             )
         else:
-            findings.append(
-                self._finding(
-                    "server.packages.security_updates",
-                    Severity.INFO,
-                    "DNF security-advisory classification was not performed",
-                    (
-                        "This first DNF package phase inventories cached pending updates only. "
-                        "Blacklight does not label DNF packages as security updates without "
-                        "advisory metadata it has explicitly inspected."
-                    ),
-                    evidence={
-                        "manager": "dnf",
-                        "repository_metadata_refreshed": False,
-                    },
-                )
-            )
+            findings.append(self._check_dnf_security_advisories(advisory_result))
 
         findings.append(
             self._finding(
@@ -244,6 +251,110 @@ class ServerPackagesScanner:
             )
         )
         return findings
+
+    def _check_dnf_security_advisories(
+        self,
+        result: CommandResult | None,
+    ) -> Finding:
+        if result is None:
+            return self._error(
+                "server.packages.security_updates",
+                "Blacklight could not inspect cached DNF security advisories",
+                (
+                    "The DNF package inventory completed, but security-advisory metadata was "
+                    "not available to the scanner."
+                ),
+                {
+                    "manager": "dnf",
+                    "repository_metadata_refreshed": False,
+                },
+            )
+
+        advisory_rc: int | None = None
+        lines: list[str] = []
+        for raw_line in result.stdout.splitlines():
+            line = raw_line.strip()
+            if line.startswith("BLACKLIGHT_ADVISORY_RC="):
+                value = line.split("=", 1)[1].strip()
+                if value.isdigit():
+                    advisory_rc = int(value)
+            elif line.startswith("BLACKLIGHT_SECURITY_ADVISORY="):
+                lines.append(line.split("=", 1)[1].strip())
+
+        if result.returncode != 0 or advisory_rc != 0:
+            return self._error(
+                "server.packages.security_updates",
+                "Blacklight could not inspect cached DNF security advisories",
+                (
+                    "The cache-only DNF updateinfo command did not complete successfully. "
+                    "Blacklight did not refresh repository metadata or infer that no security "
+                    "advisories are pending."
+                ),
+                {
+                    "manager": "dnf",
+                    "wrapper_returncode": result.returncode,
+                    "advisory_command_returncode": advisory_rc,
+                    "stderr": result.stderr[:500],
+                    "repository_metadata_refreshed": False,
+                },
+            )
+
+        advisories = self._parse_dnf_security_advisories(lines)
+        return self._finding(
+            "server.packages.security_updates",
+            Severity.MEDIUM if advisories else Severity.PASS,
+            (
+                "Cached DNF advisory metadata reports pending security updates"
+                if advisories
+                else "No pending DNF security advisories were observed in cached metadata"
+            ),
+            (
+                "Blacklight used DNF's cache-only updateinfo security view and reports only "
+                "advisories explicitly identified by the local advisory metadata. Vendor "
+                "severity labels are retained as evidence but do not change Blacklight "
+                "severity in this phase."
+            ),
+            remediation=(
+                "Review and apply the listed security advisories through the host's approved "
+                "patch-management process."
+                if advisories
+                else ""
+            ),
+            evidence={
+                "manager": "dnf",
+                "security_advisory_count": len(advisories),
+                "advisories": advisories[:100],
+                "evidence_truncated": len(advisories) > 100,
+                "repository_metadata_refreshed": False,
+            },
+        )
+
+    @staticmethod
+    def _parse_dnf_security_advisories(lines: list[str]) -> list[dict[str, str]]:
+        advisories: list[dict[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+
+        for line in lines:
+            parts = line.split()
+            if len(parts) < 3 or not parts[1].lower().endswith("/sec."):
+                continue
+
+            advisory_id = parts[0]
+            vendor_severity = parts[1].split("/", 1)[0].upper()
+            package = parts[2]
+            key = (advisory_id, package)
+            if key in seen:
+                continue
+            seen.add(key)
+            advisories.append(
+                {
+                    "advisory_id": advisory_id,
+                    "vendor_severity": vendor_severity,
+                    "package": package,
+                }
+            )
+
+        return advisories
 
     @staticmethod
     def _parse_updates(manager: str, lines: list[str]) -> list[dict[str, Any]]:
