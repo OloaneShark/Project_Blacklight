@@ -276,7 +276,7 @@ def _run_server(args: argparse.Namespace) -> int:
                 "either --host or --target-profile is required for a server scan"
             )
 
-        host = args.host or profile.host
+        host = args.host if args.host is not None else profile.host
         user = args.user if args.user is not None else (profile.user if profile else None)
         port = args.port if args.port is not None else (profile.port if profile else 22)
         identity_file = (
