@@ -115,9 +115,24 @@ class ServerPackagesScanner:
         except SSHExecutionError as error:
             return [self._transport_error("pending_updates", error)]
 
-        return self._check_updates(manager, result)
+        advisory_result: CommandResult | None = None
+        if manager == "dnf":
+            try:
+                advisory_result = self.executor.run(_DNF_SECURITY_ADVISORIES_COMMAND)
+            except SSHExecutionError as error:
+                return [
+                    *self._check_updates(manager, result),
+                    self._transport_error("security_advisories", error),
+                ]
 
-    def _check_updates(self, manager: str, result: CommandResult) -> list[Finding]:
+        return self._check_updates(manager, result, advisory_result)
+
+    def _check_updates(
+        self,
+        manager: str,
+        result: CommandResult,
+        advisory_result: CommandResult | None = None,
+    ) -> list[Finding]:
         family = manager
         command_rc: int | None = None
         cache_age: int | None = None
