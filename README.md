@@ -134,6 +134,14 @@ Scan a remote Linux server over SSH:
 blacklight scan server --host server.example.com --user blacklight-audit
 ```
 
+Or use a reusable connection profile from `~/.blacklight/server-targets.toml`:
+
+```bash
+blacklight scan server --target-profile production
+```
+
+See `examples/server-targets.example.toml` and the server-scanning documentation for the allowed non-secret profile fields and CLI override behavior.
+
 Run one server scanner:
 
 ```bash
@@ -285,7 +293,7 @@ The Blacklight core is implemented as a source-based CLI project: deterministic 
 
 Future expansion is intentionally a new phase rather than unfinished core work:
 
-- deeper Linux server authentication, package/update visibility, and reusable read-only target-profile checks
+- deeper Linux server service/configuration checks and broader package-manager security metadata
 - deeper AWS/Docker/Kubernetes checks
 - live Kubernetes cluster and Docker-daemon inspection
 - additional cloud providers
