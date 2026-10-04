@@ -18,6 +18,54 @@ Use a specific private key:
 blacklight scan server --host server.example.com --user blacklight-audit --identity-file ~/.ssh/blacklight_audit
 ```
 
+## Reusable target profiles
+
+Blacklight can load connection metadata from a local TOML file instead of requiring host/user/port/key arguments on every scan.
+
+The default profile file is:
+
+```text
+~/.blacklight/server-targets.toml
+```
+
+Example:
+
+```toml
+[targets.production]
+host = "server.example.com"
+user = "blacklight-audit"
+port = 22
+identity_file = "~/.ssh/blacklight_audit"
+connect_timeout = 10
+```
+
+Run it with:
+
+```bash
+blacklight scan server --target-profile production
+```
+
+Use a different profile file:
+
+```bash
+blacklight scan server \
+  --target-profile production \
+  --targets-file ./my-targets.toml
+```
+
+Command-line connection arguments override values from the selected profile. For example:
+
+```bash
+blacklight scan server \
+  --target-profile production \
+  --port 2222 \
+  --connect-timeout 15
+```
+
+Profiles accept only `host`, `user`, `port`, `identity_file`, and `connect_timeout`. Blacklight rejects unknown fields so passwords, tokens, private-key contents, and arbitrary SSH options are not silently turned into a secret store. `identity_file` is only a filesystem path; the key contents remain managed by OpenSSH.
+
+A ready-to-copy example is available at `examples/server-targets.example.toml`.
+
 ## Authentication model
 
 Blacklight delegates transport and authentication to the local OpenSSH `ssh` client.
@@ -165,7 +213,7 @@ This first scanner deliberately does not run privileged `sshd -T` commands or cl
 
 ## Permissions
 
-The audit account should have ordinary read access to the information Blacklight inspects. The baseline scanner does not require root or passwordless sudo. Some firewall tools and sudoers files restrict visibility to privileged users; Blacklight does not elevate with `sudo`. If the audit account cannot inspect an installed firewall backend or existing sudoers configuration, the relevant scanner records an `ERROR` coverage gap rather than silently claiming the host is safe.
+The audit account should have ordinary read access to the information Blacklight inspects. Reusable target profiles store only connection metadata and never contain password or private-key contents. The baseline scanner does not require root or passwordless sudo. Some firewall tools and sudoers files restrict visibility to privileged users; Blacklight does not elevate with `sudo`. If the audit account cannot inspect an installed firewall backend or existing sudoers configuration, the relevant scanner records an `ERROR` coverage gap rather than silently claiming the host is safe.
 
 If the account cannot read a piece of configuration, Blacklight preserves that limitation rather than silently claiming the configuration is safe.
 

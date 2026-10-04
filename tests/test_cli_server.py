@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import subprocess
+from pathlib import Path
 from unittest.mock import patch
 
 from blacklight_security.cli import main
@@ -249,3 +251,110 @@ def test_server_cli_can_run_package_scanner_and_gate_security_updates(capsys):
     assert exit_code == 1
     assert "Scanners: packages" in output.out
     assert "pending security-origin updates" in output.out
+
+
+def test_server_cli_loads_target_profile_and_preserves_scan_context(tmp_path, capsys):
+    profile_file = tmp_path / "targets.toml"
+    profile_file.write_text(
+        """
+[targets.prod]
+host = "server.example"
+user = "audit"
+port = 2222
+identity_file = "~/.ssh/blacklight_audit"
+connect_timeout = 7
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def fake_run(argv, **kwargs):
+        return _ssh_result(argv[-1])
+
+    with patch(
+        "blacklight_security.scanners.server.linux.subprocess.run",
+        side_effect=fake_run,
+    ) as run:
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--target-profile",
+                "prod",
+                "--targets-file",
+                str(profile_file),
+                "--service",
+                "baseline",
+                "--format",
+                "json",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 0
+    payload = json.loads(output.out)
+    assert payload["scan"]["context"]["profile"] == "prod"
+
+    argv = run.call_args_list[0].args[0]
+    assert ["-p", "2222"] == argv[5:7]
+    assert "audit@server.example" == argv[-2]
+    assert str((Path("~/.ssh/blacklight_audit").expanduser())) in argv
+
+
+def test_server_cli_profile_values_can_be_overridden(tmp_path, capsys):
+    profile_file = tmp_path / "targets.toml"
+    profile_file.write_text(
+        """
+[targets.prod]
+host = "server.example"
+user = "audit"
+port = 2222
+connect_timeout = 7
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def fake_run(argv, **kwargs):
+        return _ssh_result(argv[-1])
+
+    with patch(
+        "blacklight_security.scanners.server.linux.subprocess.run",
+        side_effect=fake_run,
+    ) as run:
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--target-profile",
+                "prod",
+                "--targets-file",
+                str(profile_file),
+                "--host",
+                "override.example",
+                "--user",
+                "override-user",
+                "--port",
+                "2200",
+                "--connect-timeout",
+                "9",
+                "--service",
+                "baseline",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 0
+    assert "Target profile: prod" in output.out
+    argv = run.call_args_list[0].args[0]
+    assert ["-p", "2200"] == argv[5:7]
+    assert "ConnectTimeout=9" in argv
+    assert argv[-2] == "override-user@override.example"
+
+
+def test_server_cli_requires_host_or_target_profile(capsys):
+    exit_code = main(["scan", "server", "--service", "baseline"])
+
+    output = capsys.readouterr()
+    assert exit_code == 2
+    assert "either --host or --target-profile is required" in output.err

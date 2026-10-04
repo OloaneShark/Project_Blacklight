@@ -61,7 +61,7 @@ class ServerScanTarget:
     connect_timeout: int = 10
     executor: Any | None = field(default=None, repr=False, compare=False)
     region_name: None = None
-    profile_name: None = None
+    profile_name: str | None = None
 
     def __post_init__(self) -> None:
         self.host = self.host.strip()
