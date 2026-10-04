@@ -18,6 +18,11 @@ from blacklight_security.runner import ScanResult, ScanRunner
 from blacklight_security.scanners.docker import DockerScanTarget
 from blacklight_security.scanners.kubernetes import KubernetesScanTarget
 from blacklight_security.scanners.server import ServerScanTarget
+from blacklight_security.server_profiles import (
+    DEFAULT_SERVER_TARGETS_FILE,
+    ServerTargetProfileError,
+    load_server_target_profile,
+)
 
 
 def _add_report_options(parser: argparse.ArgumentParser) -> None:
@@ -107,9 +112,23 @@ def build_parser() -> argparse.ArgumentParser:
         default="all",
         help="Server scanner to run (default: all)",
     )
-    server.add_argument("--host", required=True, help="Remote Linux hostname or IP address")
+    server.add_argument("--host", help="Remote Linux hostname or IP address; overrides a target profile")
+    server.add_argument(
+        "--target-profile",
+        help="Reusable server target name from the targets TOML file",
+    )
+    server.add_argument(
+        "--targets-file",
+        type=Path,
+        default=DEFAULT_SERVER_TARGETS_FILE,
+        help=f"Server target profile TOML file (default: {DEFAULT_SERVER_TARGETS_FILE})",
+    )
     server.add_argument("--user", help="SSH username; omit to use OpenSSH configuration/defaults")
-    server.add_argument("--port", type=int, default=22, help="SSH port (default: 22)")
+    server.add_argument(
+        "--port",
+        type=int,
+        help="SSH port override; defaults to the target profile value or 22",
+    )
     server.add_argument(
         "--identity-file",
         type=Path,
@@ -118,8 +137,7 @@ def build_parser() -> argparse.ArgumentParser:
     server.add_argument(
         "--connect-timeout",
         type=int,
-        default=10,
-        help="SSH connection timeout in seconds, 1-60 (default: 10)",
+        help="SSH connection timeout override in seconds, 1-60; profile/default is 10",
     )
     _add_report_options(server)
 
@@ -250,14 +268,37 @@ def _run_server(args: argparse.Namespace) -> int:
         return 2
 
     try:
-        target = ServerScanTarget(
-            host=args.host,
-            user=args.user,
-            port=args.port,
-            identity_file=args.identity_file,
-            connect_timeout=args.connect_timeout,
+        profile = None
+        if args.target_profile:
+            profile = load_server_target_profile(args.target_profile, args.targets_file)
+        elif not args.host:
+            raise ServerTargetProfileError(
+                "either --host or --target-profile is required for a server scan"
+            )
+
+        host = args.host or profile.host
+        user = args.user if args.user is not None else (profile.user if profile else None)
+        port = args.port if args.port is not None else (profile.port if profile else 22)
+        identity_file = (
+            args.identity_file
+            if args.identity_file is not None
+            else (profile.identity_file if profile else None)
         )
-    except ValueError as error:
+        connect_timeout = (
+            args.connect_timeout
+            if args.connect_timeout is not None
+            else (profile.connect_timeout if profile else 10)
+        )
+
+        target = ServerScanTarget(
+            host=host,
+            user=user,
+            port=port,
+            identity_file=identity_file,
+            connect_timeout=connect_timeout,
+            profile_name=profile.name if profile else None,
+        )
+    except (ServerTargetProfileError, ValueError) as error:
         print(f"Blacklight server target error: {error}", file=sys.stderr)
         return 2
 
