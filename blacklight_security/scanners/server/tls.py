@@ -213,7 +213,7 @@ class ServerTLSScanner:
 
         findings: list[Finding] = []
         for cert in certificates:
-            findings.append(self._certificate_finding(cert))
+            findings.extend(self._certificate_findings(cert))
 
         if no_certificate:
             findings.append(
@@ -243,7 +243,7 @@ class ServerTLSScanner:
             )
         return findings
 
-    def _certificate_finding(self, cert: TLSCertificate) -> Finding:
+    def _certificate_findings(self, cert: TLSCertificate) -> list[Finding]:
         now = datetime.now(timezone.utc)
         days_remaining: int | None = None
         if cert.not_after is not None:
@@ -262,7 +262,7 @@ class ServerTLSScanner:
         }
 
         if days_remaining is not None and days_remaining < 0:
-            return self._finding(
+            expiry_finding = self._finding(
                 "server.tls.certificate_expiry",
                 Severity.HIGH,
                 f"TLS certificate on local port {cert.port} is expired",
@@ -270,9 +270,10 @@ class ServerTLSScanner:
                 remediation="Replace or renew the expired certificate and restart/reload the service safely.",
                 evidence=evidence,
             )
+            return self._with_self_signed_finding(cert, expiry_finding, evidence)
 
         if days_remaining is not None and days_remaining <= 30:
-            return self._finding(
+            expiry_finding = self._finding(
                 "server.tls.certificate_expiry",
                 Severity.MEDIUM,
                 f"TLS certificate on local port {cert.port} expires soon",
@@ -280,6 +281,7 @@ class ServerTLSScanner:
                 remediation="Schedule certificate renewal before the reported notAfter time.",
                 evidence=evidence,
             )
+            return self._with_self_signed_finding(cert, expiry_finding, evidence)
 
         if cert.not_after is None:
             severity = Severity.INFO
@@ -299,19 +301,30 @@ class ServerTLSScanner:
             evidence=evidence,
         )
 
+        return self._with_self_signed_finding(cert, finding, evidence)
+
+    def _with_self_signed_finding(
+        self,
+        cert: TLSCertificate,
+        expiry_finding: Finding,
+        evidence: dict[str, Any],
+    ) -> list[Finding]:
+        findings = [expiry_finding]
         if cert.self_signed:
-            return self._finding(
-                "server.tls.self_signed_certificate",
-                Severity.INFO,
-                f"TLS certificate on local port {cert.port} is self-signed",
-                (
-                    "The observed certificate subject and issuer are identical. Self-signed "
-                    "certificates can be intentional for private systems, so this is inventory "
-                    "rather than an automatic security failure."
-                ),
-                evidence=evidence,
+            findings.append(
+                self._finding(
+                    "server.tls.self_signed_certificate",
+                    Severity.INFO,
+                    f"TLS certificate on local port {cert.port} is self-signed",
+                    (
+                        "The observed certificate subject and issuer are identical. Self-signed "
+                        "certificates can be intentional for private systems, so this is inventory "
+                        "rather than an automatic security failure."
+                    ),
+                    evidence=evidence,
+                )
             )
-        return finding
+        return findings
 
     @staticmethod
     def _certificate_from_metadata(port: int, metadata: dict[str, str]) -> TLSCertificate:
