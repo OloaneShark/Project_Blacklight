@@ -6,6 +6,13 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Linux server `sshd` scanner using read-only OpenSSH `sshd -T` effective-configuration evaluation.
+- Deterministic checks for selected legacy SSH algorithms, StrictModes, GatewayPorts + TCP forwarding, PermitUserEnvironment, and HostbasedAuthentication.
+- Explicit context/coverage handling so unavailable `sshd -T` evaluation becomes INFO/ERROR rather than reconstructed guesses.
+- Effective OpenSSH scanner unit, registry, CLI gate, and documentation coverage.
+
+### Added
+
 - Linux server `tls` scanner for bounded localhost certificate inspection on selected common TLS ports already observed listening.
 - Independent expiry and self-signed findings with HIGH expired, MEDIUM <=30-day expiry, and INFO self-signed handling.
 - TLS scanner unit, registry, CLI gate, and documentation coverage without hostname/public-reachability overclaims.
