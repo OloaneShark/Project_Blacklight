@@ -39,7 +39,7 @@ def test_builtin_kubernetes_scanner_is_registered():
 
 
 def test_builtin_server_scanner_is_registered():
-    assert scanner_names("server") == ["accounts", "auth", "baseline", "hardening", "network", "packages"]
+    assert scanner_names("server") == ["accounts", "auth", "baseline", "hardening", "network", "packages", "services"]
 
     specs = scanner_specs("server", "baseline")
     assert len(specs) == 1
@@ -80,3 +80,10 @@ def test_registry_selects_server_packages_scanner():
     assert len(specs) == 1
     assert specs[0].provider == "server"
     assert specs[0].name == "packages"
+
+
+def test_registry_selects_server_services_scanner():
+    specs = scanner_specs("server", "services")
+    assert len(specs) == 1
+    assert specs[0].provider == "server"
+    assert specs[0].name == "services"
