@@ -10,6 +10,7 @@ from blacklight_security.scanners.server.hardening import ServerHardeningScanner
 from blacklight_security.scanners.server.network import ServerNetworkScanner
 from blacklight_security.scanners.server.packages import ServerPackagesScanner
 from blacklight_security.scanners.server.services import ServerServicesScanner
+from blacklight_security.scanners.server.tls import ServerTLSScanner
 
 __all__ = [
     "ServerAccountsScanner",
@@ -19,6 +20,7 @@ __all__ = [
     "ServerNetworkScanner",
     "ServerPackagesScanner",
     "ServerServicesScanner",
+    "ServerTLSScanner",
     "ServerScanTarget",
     "SSHCommandRunner",
     "SSHExecutionError",
