@@ -1,6 +1,6 @@
 # Server / SSH scanning
 
-Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state, package-update, and running-service coverage can be reported independently.
+Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state, package-update, and running-service and TLS-certificate coverage can be reported independently.
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
@@ -129,6 +129,12 @@ Run only running-service risk visibility:
 blacklight scan server --host server.example.com --user blacklight-audit --service services
 ```
 
+Run only local TLS certificate posture:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service tls
+```
+
 ## Baseline checks
 
 The `baseline` scanner currently inspects:
@@ -226,6 +232,18 @@ Telnet/rsh/rlogin/rexec are reported as HIGH when active because they are legacy
 FTP-capable daemons and xinetd are reported as INFO inventory/review signals rather than automatic vulnerabilities. A named FTP daemon can be configured for TLS, and xinetd is only a service multiplexer; Blacklight does not overclaim based on a unit name alone.
 
 If `systemctl` is not present, Blacklight reports that the service-state backend is unavailable rather than guessing from process names.
+
+## TLS certificate posture
+
+The `tls` scanner performs bounded, non-mutating TLS handshakes against localhost only, and only for a fixed set of common TLS ports that are already present in the host's TCP listener inventory:
+
+`443, 465, 636, 993, 995, 2376, 3269, 6443, 8443, 9443`.
+
+Blacklight extracts X.509 subject, issuer, validity dates, and SHA-256 fingerprint. Expired certificates are HIGH and certificates expiring within 30 days are MEDIUM. Self-signed certificates are reported separately as INFO because they can be intentional on private systems.
+
+The scanner deliberately does not claim that the locally selected hostname matches the certificate, that the service is reachable from the public internet, or that a specific trust store accepts the issuer. A listening common TLS port that does not return a parseable certificate is INFO rather than automatically treated as vulnerable.
+
+Blacklight requires both OpenSSL and a timeout command before attempting the local handshake so a non-responsive listener cannot stall the scan. These probes do not change service configuration or certificate files, but they can create ordinary connection/log events in the local service.
 
 ## Important SSH configuration boundary
 
