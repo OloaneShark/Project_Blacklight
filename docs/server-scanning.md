@@ -1,6 +1,6 @@
 # Server / SSH scanning
 
-Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state and package-update coverage can be reported independently.
+Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state, package-update, and running-service coverage can be reported independently.
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
@@ -123,6 +123,12 @@ Run only cached package-update visibility:
 blacklight scan server --host server.example.com --user blacklight-audit --service packages
 ```
 
+Run only running-service risk visibility:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service services
+```
+
 ## Baseline checks
 
 The `baseline` scanner currently inspects:
@@ -202,6 +208,24 @@ For APT, Blacklight runs a simulated `apt-get` upgrade with locking disabled and
 For DNF, Blacklight uses `dnf --cacheonly check-update` for pending package inventory and `dnf --cacheonly updateinfo list --security` for cached security-advisory metadata. Advisory IDs, vendor severity labels, and affected package NEVRAs are retained as evidence. If updateinfo metadata cannot be inspected, Blacklight records a coverage error instead of claiming that no security advisories are pending.
 
 Blacklight does not run `apt update`, `dnf makecache`, install packages, modify repository configuration, or refresh metadata. Therefore a result of "no pending updates" means only that the current local cache contains no newer candidate; it is not proof that upstream repositories have nothing newer.
+
+## Running-service risk visibility
+
+The `services` scanner currently checks explicit systemd unit state for a small set of legacy or cleartext-capable services:
+
+- Telnet
+- rsh
+- rlogin
+- rexec
+- TFTP
+- vsftpd / ProFTPD / Pure-FTPd
+- xinetd
+
+Telnet/rsh/rlogin/rexec are reported as HIGH when active because they are legacy remote-access protocols commonly associated with unencrypted credential/session transport. TFTP is reported as MEDIUM because it has no built-in authentication or transport encryption.
+
+FTP-capable daemons and xinetd are reported as INFO inventory/review signals rather than automatic vulnerabilities. A named FTP daemon can be configured for TLS, and xinetd is only a service multiplexer; Blacklight does not overclaim based on a unit name alone.
+
+If `systemctl` is not present, Blacklight reports that the service-state backend is unavailable rather than guessing from process names.
 
 ## Important SSH configuration boundary
 
