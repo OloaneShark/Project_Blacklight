@@ -8,13 +8,13 @@ Blacklight reveals security weaknesses that are easy to miss in cloud and worklo
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, local Kubernetes workload manifests, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, local Kubernetes workload manifests, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service and TLS-certificate checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
 The Dockerfile scanner statically detects root runtime configuration, implicit/latest base-image tags, secret-like values embedded through ARG/ENV, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. It does not require a Docker daemon. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
 
 The Kubernetes scanner statically checks workload manifests for privileged containers, explicit UID 0, privilege escalation, host namespace sharing, hostPath volumes, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values. It does not require cluster credentials. See [docs/kubernetes-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/kubernetes-scanning.md).
 
-The server provider uses the local OpenSSH client in non-interactive mode with fixed read-only commands. Its `baseline` scanner checks explicit insecure SSH directives, SSH configuration file permissions, additional UID 0 accounts, and world-writable Docker socket access. Its `network` scanner inventories non-loopback listening sockets and supported local firewall controls. Its `hardening` scanner checks sensitive-file/SSH-path permissions and supported automatic-update posture. Its `accounts` scanner checks duplicate UIDs, login-capable system accounts, selected privileged-group memberships, and direct broad passwordless-sudo rules where configuration is readable. Its `auth` scanner checks selected PAM authentication paths, connected-account password state, and best-effort local shadow account state without returning password hashes. Its `packages` scanner inspects cached APT/DNF update state without refreshing repositories or installing packages, including explicit cached DNF security advisories when updateinfo metadata is available. Its `services` scanner detects active legacy remote-access/TFTP units while keeping FTP/xinetd findings as inventory rather than overclaiming vulnerability. See [docs/server-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/server-scanning.md).
+The server provider uses the local OpenSSH client in non-interactive mode with fixed read-only commands. Its `baseline` scanner checks explicit insecure SSH directives, SSH configuration file permissions, additional UID 0 accounts, and world-writable Docker socket access. Its `network` scanner inventories non-loopback listening sockets and supported local firewall controls. Its `hardening` scanner checks sensitive-file/SSH-path permissions and supported automatic-update posture. Its `accounts` scanner checks duplicate UIDs, login-capable system accounts, selected privileged-group memberships, and direct broad passwordless-sudo rules where configuration is readable. Its `auth` scanner checks selected PAM authentication paths, connected-account password state, and best-effort local shadow account state without returning password hashes. Its `packages` scanner inspects cached APT/DNF update state without refreshing repositories or installing packages, including explicit cached DNF security advisories when updateinfo metadata is available. Its `services` scanner detects active legacy remote-access/TFTP units while keeping FTP/xinetd findings as inventory rather than overclaiming vulnerability. Its `tls` scanner performs bounded localhost handshakes on selected common TLS listeners to report certificate expiry and self-signed status without changing service state. See [docs/server-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/server-scanning.md).
 
 The IAM scanner checks root MFA, long-lived access-key age/usage, policies attached directly to IAM users, groups, and roles, and IAM role trust policies. It flags unconditional identity-policy `Allow` statements that grant both `Action: "*"` and `Resource: "*"`, plus role trust statements with a wildcard principal and STS assume-role action but no condition. These checks report directly observed policy evidence; they do not claim to calculate final effective permissions or every prerequisite for successful role assumption.
 
@@ -152,6 +152,7 @@ blacklight scan server --host server.example.com --user blacklight-audit --servi
 blacklight scan server --host server.example.com --user blacklight-audit --service auth
 blacklight scan server --host server.example.com --user blacklight-audit --service packages
 blacklight scan server --host server.example.com --user blacklight-audit --service services
+blacklight scan server --host server.example.com --user blacklight-audit --service tls
 ```
 
 Scan one service:
@@ -282,7 +283,8 @@ blacklight_security/
         ├── accounts.py
         ├── auth.py
         ├── packages.py
-        └── services.py
+        ├── services.py
+        └── tls.py
 ```
 
 The CLI parses commands and hands execution to the scan runner. The runner resolves scan context, coordinates registered scanners, isolates per-scanner AWS API failures, tracks coverage, and creates one normalized scan result. Scanner modules collect evidence and determine findings. The risk engine consumes successfully observed security findings after detection. The coverage layer describes how completely the selected scope was inspected without changing the risk score. The policy layer can turn deterministic findings into a CI/CD pass/fail decision, and the reporting layers render console, JSON, or standalone HTML output.
