@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Linux server `services` scanner for explicit systemd state of selected legacy/cleartext-capable services.
+- HIGH findings for active Telnet/rsh/rlogin/rexec units, MEDIUM for TFTP, and INFO-only review signals for FTP-capable daemons and xinetd.
+- Service scanner unit, registry, CLI gate, and documentation coverage.
+
+### Added
+
 - Reusable Linux server target profiles loaded from TOML with a default `~/.blacklight/server-targets.toml` path.
 - `--target-profile` and `--targets-file` server CLI options with command-line connection overrides.
 - Strict profile schema that permits connection metadata only and rejects password/secret/private-key-content fields.
