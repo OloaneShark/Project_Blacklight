@@ -434,3 +434,48 @@ def test_server_cli_can_run_tls_scanner_and_gate_expired_certificate(capsys):
     assert exit_code == 1
     assert "Scanners: tls" in output.out
     assert "is expired" in output.out
+
+
+def test_server_cli_can_run_sshd_scanner_and_gate_effective_setting(capsys):
+    def fake_run(argv, **kwargs):
+        command = argv[-1]
+        if "BLACKLIGHT_OK" in command:
+            return subprocess.CompletedProcess([], 0, "BLACKLIGHT_OK\nLinux\nprod-1\n", "")
+        if "BLACKLIGHT_SSHD_BACKEND" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_SSHD_BACKEND=openssh\n"
+                "BLACKLIGHT_SSHD_RC=0\n"
+                "BLACKLIGHT_SSHD=strictmodes no\n"
+                "BLACKLIGHT_SSHD=gatewayports no\n"
+                "BLACKLIGHT_SSHD=allowtcpforwarding yes\n"
+                "BLACKLIGHT_SSHD=permituserenvironment no\n"
+                "BLACKLIGHT_SSHD=hostbasedauthentication no\n"
+                "BLACKLIGHT_SSHD=ciphers chacha20-poly1305@openssh.com\n"
+                "BLACKLIGHT_SSHD=macs hmac-sha2-256-etm@openssh.com\n"
+                "BLACKLIGHT_SSHD=kexalgorithms curve25519-sha256\n"
+                "BLACKLIGHT_SSHD=hostkeyalgorithms ssh-ed25519\n"
+                "BLACKLIGHT_SSHD=pubkeyacceptedalgorithms ssh-ed25519\n",
+                "",
+            )
+        raise AssertionError(f"unexpected SSH command: {command}")
+
+    with patch("blacklight_security.scanners.server.linux.subprocess.run", side_effect=fake_run):
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--host",
+                "server.example",
+                "--service",
+                "sshd",
+                "--fail-on",
+                "medium",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: sshd" in output.out
+    assert "OpenSSH StrictModes is disabled" in output.out
