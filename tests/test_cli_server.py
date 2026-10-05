@@ -393,3 +393,44 @@ def test_server_cli_can_run_services_scanner_and_gate_legacy_remote_access(capsy
     assert exit_code == 1
     assert "Scanners: services" in output.out
     assert "Legacy cleartext remote-access services are active" in output.out
+
+
+def test_server_cli_can_run_tls_scanner_and_gate_expired_certificate(capsys):
+    def fake_run(argv, **kwargs):
+        command = argv[-1]
+        if "BLACKLIGHT_OK" in command:
+            return subprocess.CompletedProcess([], 0, "BLACKLIGHT_OK\nLinux\nprod-1\n", "")
+        if "BLACKLIGHT_OPENSSL" in command:
+            return subprocess.CompletedProcess(
+                [],
+                0,
+                "BLACKLIGHT_OPENSSL=present\n"
+                "BLACKLIGHT_TIMEOUT=present\n"
+                "BLACKLIGHT_LISTENER_BACKEND=ss\n"
+                "BLACKLIGHT_TLS_PORT=443\n"
+                "BLACKLIGHT_TLS_META=443|subject=CN = legacy.example\n"
+                "BLACKLIGHT_TLS_META=443|issuer=CN = Example CA\n"
+                "BLACKLIGHT_TLS_META=443|notBefore=Jan  1 00:00:00 1999 GMT\n"
+                "BLACKLIGHT_TLS_META=443|notAfter=Jan  1 00:00:00 2000 GMT\n",
+                "",
+            )
+        raise AssertionError(f"unexpected SSH command: {command}")
+
+    with patch("blacklight_security.scanners.server.linux.subprocess.run", side_effect=fake_run):
+        exit_code = main(
+            [
+                "scan",
+                "server",
+                "--host",
+                "server.example",
+                "--service",
+                "tls",
+                "--fail-on",
+                "high",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: tls" in output.out
+    assert "is expired" in output.out
