@@ -1,6 +1,6 @@
 # Server / SSH scanning
 
-Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state, package-update, and running-service and TLS-certificate coverage can be reported independently.
+Project Blacklight can perform read-only security checks against a remote Linux server over SSH. Server scanning is split into registered scanners so baseline, network, host-hardening, account/privilege, and authentication-state, package-update, and running-service and TLS-certificate and effective-OpenSSH coverage can be reported independently.
 
 ```bash
 blacklight scan server --host server.example.com --user blacklight-audit
@@ -135,6 +135,12 @@ Run only local TLS certificate posture:
 blacklight scan server --host server.example.com --user blacklight-audit --service tls
 ```
 
+Run only effective OpenSSH configuration checks:
+
+```bash
+blacklight scan server --host server.example.com --user blacklight-audit --service sshd
+```
+
 ## Baseline checks
 
 The `baseline` scanner currently inspects:
@@ -244,6 +250,24 @@ Blacklight extracts X.509 subject, issuer, validity dates, and SHA-256 fingerpri
 The scanner deliberately does not claim that the locally selected hostname matches the certificate, that the service is reachable from the public internet, or that a specific trust store accepts the issuer. A listening common TLS port that does not return a parseable certificate is INFO rather than automatically treated as vulnerable.
 
 Blacklight requires both OpenSSL and a timeout command before attempting the local handshake so a non-responsive listener cannot stall the scan. These probes do not change service configuration or certificate files, but they can create ordinary connection/log events in the local service.
+
+## Effective OpenSSH configuration
+
+The `sshd` scanner uses the installed OpenSSH server's read-only `sshd -T` mode to evaluate selected effective settings instead of trying to reconstruct every include/default interaction manually.
+
+It currently checks:
+
+- selected legacy cipher, MAC, key-exchange, host-key, and accepted public-key algorithms
+- `StrictModes`
+- the combination of `GatewayPorts` and `AllowTcpForwarding`
+- `PermitUserEnvironment`
+- `HostbasedAuthentication`
+
+The scanner evaluates one concrete context using the connected audit user, the host's local hostname, and address `127.0.0.1`. OpenSSH `Match` blocks for other users, hostnames, or source addresses can produce different effective settings, so Blacklight does not claim this is a universal evaluation of every possible login context.
+
+Blacklight does not invoke `sudo` to make `sshd -T` succeed. If OpenSSH is installed but the audit account cannot evaluate effective configuration (for example because required host-key/config material is inaccessible), the scanner records an ERROR coverage gap. If the `sshd` executable is not available, it reports an INFO unsupported-backend condition instead of guessing.
+
+The original `baseline` scanner still records explicit SSH configuration evidence; the `sshd` scanner focuses on advanced effective settings rather than duplicating root/password findings and double-counting the same issue.
 
 ## Important SSH configuration boundary
 
