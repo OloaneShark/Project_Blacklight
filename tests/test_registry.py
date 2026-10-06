@@ -21,7 +21,7 @@ def test_registry_selects_one_scanner():
 
 
 def test_builtin_docker_scanner_is_registered():
-    assert scanner_names("docker") == ["dockerfile"]
+    assert scanner_names("docker") == ["daemon", "dockerfile"]
 
     specs = scanner_specs("docker", "dockerfile")
     assert len(specs) == 1
@@ -101,3 +101,10 @@ def test_registry_selects_server_sshd_scanner():
     assert len(specs) == 1
     assert specs[0].provider == "server"
     assert specs[0].name == "sshd"
+
+
+def test_registry_selects_docker_daemon_scanner():
+    specs = scanner_specs("docker", "daemon")
+    assert len(specs) == 1
+    assert specs[0].provider == "docker"
+    assert specs[0].name == "daemon"

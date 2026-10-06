@@ -1,8 +1,8 @@
-# Dockerfile Security Scanning
+# Docker Security Scanning
 
-Project Blacklight can statically inspect Dockerfiles without requiring a Docker daemon.
+Project Blacklight supports both static Dockerfile analysis and explicit read-only inspection of the local Docker daemon.
 
-The first Docker security scanner focuses on deterministic, high-signal build and runtime configuration problems rather than image CVE databases.
+Static Dockerfile scanning remains the default so source scans do not unexpectedly require a running daemon.
 
 ## Run the scanner
 
@@ -34,6 +34,18 @@ Use the normal CI/CD gate:
 
 ```bash
 blacklight scan docker --path . --fail-on high --require-full-coverage
+```
+
+Inspect currently running containers through the local Docker CLI:
+
+```bash
+blacklight scan docker --service daemon
+```
+
+Run both static Dockerfile and live-daemon scanners:
+
+```bash
+blacklight scan docker --service all --path .
 ```
 
 ## Dockerfile discovery
@@ -109,22 +121,38 @@ Detects `chmod 777` in `RUN` instructions.
 
 The finding is MEDIUM.
 
-## What the first Docker scanner does not do
+## Live daemon checks
 
-This first slice does **not** yet:
+The `daemon` scanner uses the local Docker CLI with argument-list subprocess calls, bounded timeouts, and `shell=False`. It does not create, start, stop, restart, exec into, or modify containers.
 
-- inspect running containers
-- connect to the Docker daemon/socket
-- enumerate images
-- scan installed OS/package CVEs
-- inspect Docker Compose
-- analyze Linux capabilities
-- analyze seccomp/AppArmor profiles
-- inspect Kubernetes manifests
+For each currently running container it checks:
+
+- privileged mode — CRITICAL
+- host network/PID/IPC namespace sharing — HIGH
+- Docker daemon socket mounts — CRITICAL when read-write, HIGH when observed read-only
+- `CapAdd: ALL` — HIGH
+- explicit unconfined seccomp/AppArmor options — HIGH
+- empty/root/UID-0 configured runtime user — HIGH
+- ports published on all host interfaces — LOW exposure inventory
+
+The configured-user check describes Docker's container configuration. An application can still voluntarily drop privileges after startup, so Blacklight does not claim every process remains root solely from `Config.User`.
+
+Published ports bound to `0.0.0.0` or `::` are LOW because this proves host-interface publication, not internet reachability or vulnerability.
+
+If the Docker CLI or daemon is unavailable, live-daemon inspection reports INFO availability context rather than breaking the independent static Dockerfile scanner.
+
+## Current Docker boundaries
+
+Blacklight still does **not** yet:
+
+- scan installed container-image OS/package CVEs
+- inspect Docker Compose effective configuration
+- execute commands inside containers
+- mutate Docker daemon/container state
 - calculate whether a base-image version tag is immutable
-- execute the Dockerfile
+- infer internet reachability from a published host port
 
-Those belong to later Docker/Kubernetes roadmap slices.
+Those belong to later Docker/container roadmap slices.
 
 ## Security model
 
@@ -142,7 +170,7 @@ risk / coverage / CI gates
 console / JSON / HTML reports
 ```
 
-No AI model decides whether a Dockerfile finding exists.
+No AI model decides whether a Dockerfile or live-daemon finding exists.
 
 ## CI example
 
@@ -154,4 +182,3 @@ No AI model decides whether a Dockerfile finding exists.
   run: blacklight scan docker --path . --fail-on high --require-full-coverage
 ```
 
-The same command can be run from the standalone executable once a release has been downloaded.

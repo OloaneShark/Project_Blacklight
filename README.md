@@ -8,9 +8,9 @@ Blacklight reveals security weaknesses that are easy to miss in cloud and worklo
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, local Kubernetes workload manifests, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service and TLS-certificate and effective-OpenSSH checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, running local Docker containers, local Kubernetes workload manifests, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service and TLS-certificate and effective-OpenSSH checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
-The Dockerfile scanner statically detects root runtime configuration, implicit/latest base-image tags, secret-like values embedded through ARG/ENV, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. It does not require a Docker daemon. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
+The Docker provider defaults to static Dockerfile scanning for root runtime configuration, implicit/latest base-image tags, secret-like ARG/ENV values, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. Its explicit `daemon` scanner inspects currently running local containers for privileged mode, host namespaces, Docker-socket mounts, ALL capabilities, unconfined runtime profiles, configured root users, and broad host-port publication. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
 
 The Kubernetes scanner statically checks workload manifests for privileged containers, explicit UID 0, privilege escalation, host namespace sharing, hostPath volumes, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values. It does not require cluster credentials. See [docs/kubernetes-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/kubernetes-scanning.md).
 
@@ -118,6 +118,12 @@ Scan one Dockerfile:
 
 ```bash
 blacklight scan docker --path ./Dockerfile
+```
+
+Inspect running local Docker containers:
+
+```bash
+blacklight scan docker --service daemon
 ```
 
 Scan Kubernetes manifests:
@@ -274,7 +280,8 @@ blacklight_security/
     │   ├── lambda_functions.py
     │   └── guardduty.py
     ├── docker/
-    │   └── dockerfile.py
+    │   ├── dockerfile.py
+    │   └── daemon.py
     ├── kubernetes/
     │   └── manifests.py
     └── server/
@@ -301,7 +308,7 @@ Future expansion is intentionally a new phase rather than unfinished core work:
 
 - deeper Linux server service/configuration checks and broader package-manager security metadata
 - deeper AWS/Docker/Kubernetes checks
-- live Kubernetes cluster and Docker-daemon inspection
+- live Kubernetes cluster inspection and deeper Docker image/runtime analysis
 - additional cloud providers
 - packaging or UI work only if the project direction calls for it later
 - richer third-party scanner/analyst extension points

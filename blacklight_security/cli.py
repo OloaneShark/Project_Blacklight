@@ -75,8 +75,8 @@ def build_parser() -> argparse.ArgumentParser:
     docker.add_argument(
         "--service",
         choices=["all", *scanner_names("docker")],
-        default="all",
-        help="Docker scanner to run (default: all)",
+        default="dockerfile",
+        help="Docker scanner to run (default: dockerfile)",
     )
     docker.add_argument(
         "--path",
