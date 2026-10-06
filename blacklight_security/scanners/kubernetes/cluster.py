@@ -61,26 +61,34 @@ class KubernetesClusterScanner(KubernetesManifestScanner):
 
     def scan(self) -> list[Finding]:
         try:
-            context = self.cli.run(["config", "current-context"])
+            client = self.cli.run(["version", "--client", "-o", "json"])
         except KubectlCommandError as error:
             return [self._availability_info(str(error))]
 
-        if context.returncode != 0:
-            return [
-                self._finding(
-                    "cluster",
-                    "kubernetes.cluster.connection",
-                    Severity.INFO,
-                    "Kubernetes live-cluster inspection is not available",
-                    (
-                        "kubectl is available, but Blacklight could not resolve the selected "
-                        "Kubernetes context."
-                    ),
-                    evidence={"stderr": context.stderr[:500]},
-                )
-            ]
+        if client.returncode != 0:
+            return [self._availability_info(client.stderr[:500] or "kubectl client check failed")]
 
-        selected_context = self.context_name or context.stdout.strip() or "unknown"
+        selected_context = self.context_name
+        if not selected_context:
+            try:
+                context = self.cli.run(["config", "current-context"])
+            except KubectlCommandError as error:
+                return [self._availability_info(str(error))]
+            if context.returncode != 0:
+                return [
+                    self._finding(
+                        "cluster",
+                        "kubernetes.cluster.connection",
+                        Severity.INFO,
+                        "Kubernetes live-cluster inspection is not available",
+                        (
+                            "kubectl is available, but Blacklight could not resolve the current "
+                            "Kubernetes context."
+                        ),
+                        evidence={"stderr": context.stderr[:500]},
+                    )
+                ]
+            selected_context = context.stdout.strip() or "unknown"
 
         pod_result = self._run_json(
             [
