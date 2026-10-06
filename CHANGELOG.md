@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Same-container Docker runtime correlations for privileged + Docker-socket access and privileged + non-loopback published ports.
+- Same-Pod Kubernetes live-cluster correlations for privileged + hostPath and privileged + hostPort combinations.
+- False-positive boundary tests proving runtime correlations do not cross unrelated container/Pod resource IDs.
+
+### Added
+
 - Explicit `kubernetes --service cluster` scanner for read-only live Pod and Service inspection through kubectl.
 - Reuse of deterministic Kubernetes workload checks against live admitted Pod specs with `kubernetes.cluster.*` check IDs.
 - LOW live Service exposure inventory for NodePort, LoadBalancer, externalIPs, and load-balancer ingress without public-reachability overclaims.
