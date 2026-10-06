@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Explicit `docker --service daemon` scanner for read-only inspection of currently running local containers.
+- Deterministic runtime findings for privileged containers, host namespaces, Docker-socket mounts, ALL capabilities, unconfined runtime profiles, configured root users, and broad host-port publication.
+- Docker daemon scanner, registry, CLI-gate, shell-safety, and documentation coverage while preserving Dockerfile scanning as the default Docker service.
+
+### Added
+
 - Linux server `sshd` scanner using read-only OpenSSH `sshd -T` effective-configuration evaluation.
 - Deterministic checks for selected legacy SSH algorithms, StrictModes, GatewayPorts + TCP forwarding, PermitUserEnvironment, and HostbasedAuthentication.
 - Explicit context/coverage handling so unavailable `sshd -T` evaluation becomes INFO/ERROR rather than reconstructed guesses.
