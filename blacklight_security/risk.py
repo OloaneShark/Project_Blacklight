@@ -102,6 +102,72 @@ def assess_risk(findings: list[Finding]) -> RiskAssessment:
                 )
             )
 
+        if provider == "docker" and service == "daemon":
+            if {
+                "docker.daemon.privileged",
+                "docker.daemon.docker_socket_mount",
+            }.issubset(checks):
+                correlations.append(
+                    Correlation(
+                        "docker.daemon.privileged_with_docker_socket",
+                        25,
+                        (
+                            "The same running container is privileged and has Docker daemon "
+                            "socket access, combining broad host capability with daemon control."
+                        ),
+                        (resource_id,),
+                    )
+                )
+
+            if {
+                "docker.daemon.privileged",
+                "docker.daemon.nonloopback_publish",
+            }.issubset(checks):
+                correlations.append(
+                    Correlation(
+                        "docker.daemon.privileged_with_nonloopback_publish",
+                        15,
+                        (
+                            "The same privileged container publishes a port on non-loopback host "
+                            "interfaces, combining host-level privilege with broader network exposure."
+                        ),
+                        (resource_id,),
+                    )
+                )
+
+        if provider == "kubernetes" and service == "cluster":
+            if {
+                "kubernetes.cluster.privileged_container",
+                "kubernetes.cluster.host_path",
+            }.issubset(checks):
+                correlations.append(
+                    Correlation(
+                        "kubernetes.cluster.privileged_with_host_path",
+                        20,
+                        (
+                            "The same live Pod contains a privileged container and mounts a hostPath, "
+                            "combining broad container privilege with direct node filesystem access."
+                        ),
+                        (resource_id,),
+                    )
+                )
+
+            if {
+                "kubernetes.cluster.privileged_container",
+                "kubernetes.cluster.host_port",
+            }.issubset(checks):
+                correlations.append(
+                    Correlation(
+                        "kubernetes.cluster.privileged_with_host_port",
+                        15,
+                        (
+                            "The same live Pod contains a privileged container and binds hostPort, "
+                            "combining elevated runtime privilege with direct node network exposure."
+                        ),
+                        (resource_id,),
+                    )
+                )
+
         if provider != "aws":
             continue
 
