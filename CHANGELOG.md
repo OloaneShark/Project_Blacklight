@@ -6,6 +6,13 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Explicit `kubernetes --service cluster` scanner for read-only live Pod and Service inspection through kubectl.
+- Reuse of deterministic Kubernetes workload checks against live admitted Pod specs with `kubernetes.cluster.*` check IDs.
+- LOW live Service exposure inventory for NodePort, LoadBalancer, externalIPs, and load-balancer ingress without public-reachability overclaims.
+- Optional `--context` selection, kubectl shell-safety/timeouts, partial-permission coverage handling, and live-cluster tests/documentation while preserving manifest scanning as the default.
+
+### Added
+
 - Explicit `docker --service daemon` scanner for read-only inspection of currently running local containers.
 - Deterministic runtime findings for privileged containers, host namespaces, Docker-socket mounts, ALL capabilities, unconfined runtime profiles, configured root users, and broad host-port publication.
 - Docker daemon scanner, registry, CLI-gate, shell-safety, and documentation coverage while preserving Dockerfile scanning as the default Docker service.
