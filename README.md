@@ -20,7 +20,7 @@ The IAM scanner checks root MFA, long-lived access-key age/usage, policies attac
 
 The Lambda scanner checks whether Lambda Function URLs allow unauthenticated public access. The GuardDuty scanner checks whether managed threat detection is enabled in the selected AWS region.
 
-Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination. Every correlation has a rule ID and reason; there is no opaque AI-generated security score. See [docs/risk-engine.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/risk-engine.md) for the scoring model and current correlation rules.
+Blacklight also performs deterministic risk assessment. Severity weights create a base score, then explicit correlation rules can raise risk when related findings form a more dangerous combination, including same-container Docker runtime combinations and same-Pod live Kubernetes privilege/exposure combinations. Every correlation has a rule ID and reason; there is no opaque AI-generated security score. See [docs/risk-engine.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/risk-engine.md) for the scoring model and current correlation rules.
 
 Risk and scan coverage are reported separately. Scanner `ERROR` findings do not add security-risk points, but they reduce confidence that the observed risk score represents the entire selected scan scope. Coverage is reported as `FULL`, `PARTIAL`, `LIMITED`, or `UNKNOWN`, with a corresponding deterministic risk-confidence label. See [docs/coverage-confidence.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/coverage-confidence.md).
 

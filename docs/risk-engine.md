@@ -87,3 +87,26 @@ Blacklight adds a deterministic server correlation when both of these findings o
 - `server.auth.pam_null_passwords`
 
 The correlation ID is `server.auth.empty_password_with_pam_nullok` and adds 20 risk points. It means Blacklight observed both an empty local password field and a PAM `pam_unix` authentication path explicitly configured with `nullok`. This increases risk but does not independently prove that a specific remote service will accept an empty password.
+
+
+## Docker runtime correlations
+
+### `docker.daemon.privileged_with_docker_socket` (+25)
+
+Fires when the same running Docker container is both privileged and has a Docker daemon socket mount finding. This combines broad host capability with direct daemon-control exposure.
+
+### `docker.daemon.privileged_with_nonloopback_publish` (+15)
+
+Fires when the same privileged Docker container also publishes a port on non-loopback host interfaces. The correlation represents combined runtime privilege and host-network exposure; it does not claim internet reachability.
+
+## Kubernetes live-cluster correlations
+
+### `kubernetes.cluster.privileged_with_host_path` (+20)
+
+Fires when the same live Pod contains a privileged container and also mounts a hostPath volume, combining broad runtime privilege with direct node-filesystem access.
+
+### `kubernetes.cluster.privileged_with_host_port` (+15)
+
+Fires when the same live Pod contains a privileged container and also configures hostPort, combining elevated container privilege with direct node-network exposure.
+
+All four runtime rules use Blacklight's same-resource grouping. Findings on different containers or Pods do not correlate merely because they occur in the same scan.
