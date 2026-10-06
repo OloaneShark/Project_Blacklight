@@ -18,11 +18,16 @@ _SECRET_NAME_RE = re.compile(
 
 @dataclass(slots=True)
 class KubernetesScanTarget:
-    """Local Kubernetes manifest scan target passed through the shared runner."""
+    """Local Kubernetes manifest/live-cluster target passed through the shared runner."""
 
     path: Path
+    context_name: str | None = None
     region_name: None = None
-    profile_name: None = None
+    profile_name: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.profile_name is None:
+            self.profile_name = self.context_name
 
 
 class KubernetesManifestScanner:

@@ -1,6 +1,6 @@
-# Kubernetes Manifest Scanning
+# Kubernetes Security Scanning
 
-Project Blacklight statically scans Kubernetes workload YAML without connecting to a cluster.
+Project Blacklight supports both static Kubernetes workload-manifest analysis and explicit read-only inspection of a live cluster through kubectl. Static manifest scanning remains the default.
 
 Run:
 
@@ -12,6 +12,24 @@ The short alias also works:
 
 ```bash
 blacklight scan k8s --path .
+```
+
+Inspect the current live kubectl context:
+
+```bash
+blacklight scan kubernetes --service cluster
+```
+
+Inspect an explicit kubectl context:
+
+```bash
+blacklight scan kubernetes --service cluster --context production
+```
+
+Run both manifest and live-cluster scanners:
+
+```bash
+blacklight scan kubernetes --service all --path .
 ```
 
 Blacklight recursively reads `.yaml` and `.yml` files and evaluates workload pod specs for Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, ReplicationControllers, Jobs, CronJobs, and Kubernetes List items.
@@ -29,23 +47,34 @@ Blacklight recursively reads `.yaml` and `.yml` files and evaluates workload pod
 - `kubernetes.manifest.image_latest` — MEDIUM for implicit or `:latest` image tags.
 - `kubernetes.manifest.literal_secret_env` — HIGH when a secret-like environment variable uses a literal value. Blacklight records the variable name but never the value.
 
+## Live cluster checks
+
+The `cluster` scanner uses the local `kubectl` CLI with argument-list subprocess calls, bounded timeouts, and `shell=False`. It performs only read operations.
+
+Blacklight requests all live Pods and reuses the same deterministic workload checks as the manifest scanner, but reports them with `kubernetes.cluster.*` IDs against the admitted live Pod specs. This means findings such as privileged mode, UID 0, host namespaces, hostPath, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values are based on what the API currently reports for running/created Pods.
+
+The scanner also inventories Services with NodePort, LoadBalancer, externalIPs, or load-balancer ingress as LOW exposure findings. That proves cluster-level exposure configuration only; it does not prove public internet reachability or exploitability.
+
+If Pod inventory succeeds but Service listing is forbidden, Blacklight keeps the Pod findings and records the Service permission failure as an ERROR coverage gap.
+
+The live scanner never creates, patches, deletes, execs into, or otherwise mutates Kubernetes resources.
+
 ## Static-analysis boundary
 
 Blacklight does not infer runtime facts that the YAML cannot prove.
 
 For example, absence of `runAsUser` is not automatically reported as "running as root" because admission policy, image metadata, or runtime defaults may change the effective UID.
 
-This scanner does not currently:
+Blacklight still does **not** yet:
 
-- connect to the Kubernetes API
-- inspect live Pods or Nodes
-- read cluster RBAC
-- inspect NetworkPolicies
-- query admission controllers
+- inspect node configuration directly
+- calculate effective RBAC privilege graphs
+- inspect NetworkPolicy enforcement semantics
+- query admission-controller configuration
 - scan container package CVEs
-- mutate manifests
+- mutate manifests or live resources
 
-Those are future extensions, not hidden assumptions in the current findings.
+Those remain future extensions rather than hidden assumptions in current findings.
 
 ## CI example
 

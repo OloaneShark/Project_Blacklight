@@ -94,8 +94,12 @@ def build_parser() -> argparse.ArgumentParser:
     kubernetes.add_argument(
         "--service",
         choices=["all", *scanner_names("kubernetes")],
-        default="all",
-        help="Kubernetes scanner to run (default: all)",
+        default="manifest",
+        help="Kubernetes scanner to run (default: manifest)",
+    )
+    kubernetes.add_argument(
+        "--context",
+        help="kubectl context for live cluster scans; omit to use the current context",
     )
     kubernetes.add_argument(
         "--path",
@@ -258,7 +262,7 @@ def _run_kubernetes(args: argparse.Namespace) -> int:
     if not _validate_output_args(args):
         return 2
 
-    target = KubernetesScanTarget(args.path)
+    target = KubernetesScanTarget(args.path, context_name=args.context)
     result = ScanRunner("kubernetes", target).run(args.service)
     return _finish_scan(args, result)
 
