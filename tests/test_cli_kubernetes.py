@@ -158,3 +158,53 @@ def test_kubernetes_cluster_json_context_records_selected_context(capsys):
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["scan"]["context"]["profile"] == "production"
+
+
+def test_kubernetes_cli_can_run_rbac_scanner_and_gate_wildcard_binding(capsys):
+    cluster_roles = {
+        "items": [
+            {
+                "metadata": {"name": "dangerous"},
+                "rules": [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["*"]}],
+            }
+        ]
+    }
+    bindings = {
+        "items": [
+            {
+                "metadata": {"name": "dangerous-binding"},
+                "roleRef": {"kind": "ClusterRole", "name": "dangerous"},
+                "subjects": [{"kind": "User", "name": "alice"}],
+            }
+        ]
+    }
+    responses = [
+        subprocess.CompletedProcess([], 0, '{"clientVersion":{}}', ""),
+        subprocess.CompletedProcess([], 0, json.dumps(cluster_roles), ""),
+        subprocess.CompletedProcess([], 0, json.dumps({"items": []}), ""),
+        subprocess.CompletedProcess([], 0, json.dumps(bindings), ""),
+        subprocess.CompletedProcess([], 0, json.dumps({"items": []}), ""),
+    ]
+
+    with patch(
+        "blacklight_security.scanners.kubernetes.cluster.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        exit_code = main(
+            [
+                "scan",
+                "kubernetes",
+                "--service",
+                "rbac",
+                "--context",
+                "production",
+                "--fail-on",
+                "high",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: rbac" in output.out
+    assert "wildcard verbs and resources" in output.out
+    assert all(call.kwargs["shell"] is False for call in run.call_args_list)

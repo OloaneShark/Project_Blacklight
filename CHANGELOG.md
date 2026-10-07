@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Live Kubernetes `rbac` scanner that resolves RoleBinding/ClusterRoleBinding grants to their referenced live roles.
+- Deterministic bound-permission checks for wildcard access, Secret reads, pod exec, impersonation, and broad built-in cluster-admin subjects.
+- RBAC scanner unit, registry, CLI gate, shell-safety, permission-gap, and documentation coverage.
+
+### Added
+
 - Same-container Docker runtime correlations for privileged + Docker-socket access and privileged + non-loopback published ports.
 - Same-Pod Kubernetes live-cluster correlations for privileged + hostPath and privileged + hostPort combinations.
 - False-positive boundary tests proving runtime correlations do not cross unrelated container/Pod resource IDs.

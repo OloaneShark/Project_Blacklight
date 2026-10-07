@@ -26,6 +26,12 @@ Inspect an explicit kubectl context:
 blacklight scan kubernetes --service cluster --context production
 ```
 
+Inspect live RBAC grants:
+
+```bash
+blacklight scan kubernetes --service rbac --context production
+```
+
 Run both manifest and live-cluster scanners:
 
 ```bash
@@ -59,6 +65,24 @@ If Pod inventory succeeds but Service listing is forbidden, Blacklight keeps the
 
 The live scanner never creates, patches, deletes, execs into, or otherwise mutates Kubernetes resources.
 
+## Live RBAC checks
+
+The `rbac` scanner reads live Roles, ClusterRoles, RoleBindings, and ClusterRoleBindings, resolves each binding back to its referenced role, and reports dangerous permissions only when they are actually granted to subjects.
+
+Current deterministic RBAC checks include:
+
+- wildcard verbs plus wildcard resources on a bound role — HIGH
+- read access to Secrets through get/list/watch or wildcard verbs — HIGH
+- create/wildcard access to `pods/exec` — HIGH
+- Kubernetes identity impersonation grants — HIGH
+- `cluster-admin` bound to `system:anonymous` or `system:unauthenticated` — CRITICAL
+- `cluster-admin` bound to `system:authenticated` — HIGH
+- other explicit `cluster-admin` bindings — INFO privilege inventory
+
+Blacklight does not flag an unused powerful Role or ClusterRole merely because it exists. The role must be referenced by a live binding for the bound-permission checks to fire.
+
+If the audit identity cannot list one of the RBAC resource types, Blacklight records an ERROR coverage gap rather than assuming no dangerous grants exist.
+
 ## Static-analysis boundary
 
 Blacklight does not infer runtime facts that the YAML cannot prove.
@@ -68,7 +92,7 @@ For example, absence of `runAsUser` is not automatically reported as "running as
 Blacklight still does **not** yet:
 
 - inspect node configuration directly
-- calculate effective RBAC privilege graphs
+- calculate transitive/effective RBAC privilege graphs beyond directly resolved live bindings
 - inspect NetworkPolicy enforcement semantics
 - query admission-controller configuration
 - scan container package CVEs
