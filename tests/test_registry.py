@@ -30,7 +30,7 @@ def test_builtin_docker_scanner_is_registered():
 
 
 def test_builtin_kubernetes_scanner_is_registered():
-    assert scanner_names("kubernetes") == ["cluster", "manifest", "rbac"]
+    assert scanner_names("kubernetes") == ["cluster", "manifest", "posture", "rbac"]
 
     specs = scanner_specs("kubernetes", "manifest")
     assert len(specs) == 1
@@ -122,3 +122,10 @@ def test_registry_selects_kubernetes_rbac_scanner():
     assert len(specs) == 1
     assert specs[0].provider == "kubernetes"
     assert specs[0].name == "rbac"
+
+
+def test_registry_selects_kubernetes_posture_scanner():
+    specs = scanner_specs("kubernetes", "posture")
+    assert len(specs) == 1
+    assert specs[0].provider == "kubernetes"
+    assert specs[0].name == "posture"

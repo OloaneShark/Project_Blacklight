@@ -32,6 +32,12 @@ Inspect live RBAC grants:
 blacklight scan kubernetes --service rbac --context production
 ```
 
+Inspect live NetworkPolicy and ServiceAccount posture:
+
+```bash
+blacklight scan kubernetes --service posture --context production
+```
+
 Run both manifest and live-cluster scanners:
 
 ```bash
@@ -83,6 +89,20 @@ Blacklight does not flag an unused powerful Role or ClusterRole merely because i
 
 If the audit identity cannot list one of the RBAC resource types, Blacklight records an ERROR coverage gap rather than assuming no dangerous grants exist.
 
+## Live NetworkPolicy and ServiceAccount posture
+
+The `posture` scanner reads live Pods, ServiceAccounts, and NetworkPolicies and currently checks:
+
+- live Pods using the namespace default ServiceAccount with an effectively enabled API token automount — LOW
+- namespaces that contain live Pods but no NetworkPolicy objects — LOW
+- NetworkPolicies that select all Pods in a namespace and contain an empty ingress or egress rule, explicitly allowing all traffic in that direction — MEDIUM
+
+ServiceAccount-token evaluation follows Kubernetes precedence: an explicit Pod setting wins, then the ServiceAccount setting, then the Kubernetes default of enabled. Blacklight aggregates affected default-ServiceAccount Pods by namespace instead of adding risk points once per Pod.
+
+A namespace-without-NetworkPolicy finding means there is no Kubernetes NetworkPolicy object in that namespace. It does not prove the cluster CNI supports/enforces NetworkPolicy or that external network controls do not exist.
+
+The allow-all check is deliberately narrow. Blacklight only reports the namespace-wide case where `podSelector: {}` combines with an empty ingress/egress rule. It does not currently attempt full selector-level policy coverage or effective CNI enforcement analysis.
+
 ## Static-analysis boundary
 
 Blacklight does not infer runtime facts that the YAML cannot prove.
@@ -93,7 +113,7 @@ Blacklight still does **not** yet:
 
 - inspect node configuration directly
 - calculate transitive/effective RBAC privilege graphs beyond directly resolved live bindings
-- inspect NetworkPolicy enforcement semantics
+- calculate selector-level/effective NetworkPolicy enforcement semantics
 - query admission-controller configuration
 - scan container package CVEs
 - mutate manifests or live resources

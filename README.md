@@ -8,11 +8,11 @@ Blacklight reveals security weaknesses that are easy to miss in cloud and worklo
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, running local Docker containers, local Kubernetes workload manifests, live Kubernetes Pods/Service exposure and bound RBAC grants, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service and TLS-certificate and effective-OpenSSH checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, running local Docker containers, local Kubernetes workload manifests, live Kubernetes Pods/Service exposure and bound RBAC grants and live NetworkPolicy/ServiceAccount posture, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service and TLS-certificate and effective-OpenSSH checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
 The Docker provider defaults to static Dockerfile scanning for root runtime configuration, implicit/latest base-image tags, secret-like ARG/ENV values, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. Its explicit `daemon` scanner inspects currently running local containers for privileged mode, host namespaces, Docker-socket mounts, ALL capabilities, unconfined runtime profiles, configured root users, and broad host-port publication. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
 
-The Kubernetes provider defaults to static workload-manifest checks for privileged containers, explicit UID 0, privilege escalation, host namespace sharing, hostPath volumes, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values. Its explicit `cluster` scanner reads live Pods through kubectl using the same deterministic checks and adds LOW Service exposure inventory for NodePort/LoadBalancer/external-IP configurations. Its `rbac` scanner resolves live RoleBindings/ClusterRoleBindings to their referenced roles and flags bound wildcard, Secret-read, pod-exec, impersonation, and broad cluster-admin grants. See [docs/kubernetes-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/kubernetes-scanning.md).
+The Kubernetes provider defaults to static workload-manifest checks for privileged containers, explicit UID 0, privilege escalation, host namespace sharing, hostPath volumes, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values. Its explicit `cluster` scanner reads live Pods through kubectl using the same deterministic checks and adds LOW Service exposure inventory for NodePort/LoadBalancer/external-IP configurations. Its `rbac` scanner resolves live RoleBindings/ClusterRoleBindings to their referenced roles and flags bound wildcard, Secret-read, pod-exec, impersonation, and broad cluster-admin grants. Its `posture` scanner checks default-ServiceAccount token automount, namespaces with Pods but no NetworkPolicy, and explicit namespace-wide allow-all NetworkPolicies. See [docs/kubernetes-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/kubernetes-scanning.md).
 
 The server provider uses the local OpenSSH client in non-interactive mode with fixed read-only commands. Its `baseline` scanner checks explicit insecure SSH directives, SSH configuration file permissions, additional UID 0 accounts, and world-writable Docker socket access. Its `network` scanner inventories non-loopback listening sockets and supported local firewall controls. Its `hardening` scanner checks sensitive-file/SSH-path permissions and supported automatic-update posture. Its `accounts` scanner checks duplicate UIDs, login-capable system accounts, selected privileged-group memberships, and direct broad passwordless-sudo rules where configuration is readable. Its `auth` scanner checks selected PAM authentication paths, connected-account password state, and best-effort local shadow account state without returning password hashes. Its `packages` scanner inspects cached APT/DNF update state without refreshing repositories or installing packages, including explicit cached DNF security advisories when updateinfo metadata is available. Its `services` scanner detects active legacy remote-access/TFTP units while keeping FTP/xinetd findings as inventory rather than overclaiming vulnerability. Its `tls` scanner performs bounded localhost handshakes on selected common TLS listeners to report certificate expiry and self-signed status without changing service state. Its `sshd` scanner uses read-only `sshd -T` evaluation for effective crypto, StrictModes, forwarding exposure, user-environment, and host-based-authentication settings. See [docs/server-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/server-scanning.md).
 
@@ -150,6 +150,12 @@ Inspect live RBAC grants:
 
 ```bash
 blacklight scan kubernetes --service rbac --context production
+```
+
+Inspect live Kubernetes posture:
+
+```bash
+blacklight scan kubernetes --service posture --context production
 ```
 
 Scan a remote Linux server over SSH:
@@ -303,7 +309,8 @@ blacklight_security/
     ├── kubernetes/
     │   ├── manifests.py
     │   ├── cluster.py
-    │   └── rbac.py
+    │   ├── rbac.py
+    │   └── posture.py
     └── server/
         ├── linux.py
         ├── network.py

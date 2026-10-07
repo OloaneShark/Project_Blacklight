@@ -208,3 +208,43 @@ def test_kubernetes_cli_can_run_rbac_scanner_and_gate_wildcard_binding(capsys):
     assert "Scanners: rbac" in output.out
     assert "wildcard verbs and resources" in output.out
     assert all(call.kwargs["shell"] is False for call in run.call_args_list)
+
+
+def test_kubernetes_cli_can_run_posture_scanner_and_gate_allow_all_policy(capsys):
+    policy = {
+        "metadata": {"name": "allow-everything", "namespace": "team-a"},
+        "spec": {
+            "podSelector": {},
+            "policyTypes": ["Ingress"],
+            "ingress": [{}],
+        },
+    }
+    responses = [
+        subprocess.CompletedProcess([], 0, '{"clientVersion":{}}', ""),
+        subprocess.CompletedProcess([], 0, json.dumps({"items": []}), ""),
+        subprocess.CompletedProcess([], 0, json.dumps({"items": []}), ""),
+        subprocess.CompletedProcess([], 0, json.dumps({"items": [policy]}), ""),
+    ]
+
+    with patch(
+        "blacklight_security.scanners.kubernetes.cluster.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        exit_code = main(
+            [
+                "scan",
+                "kubernetes",
+                "--service",
+                "posture",
+                "--context",
+                "production",
+                "--fail-on",
+                "medium",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: posture" in output.out
+    assert "explicitly allows all traffic" in output.out
+    assert all(call.kwargs["shell"] is False for call in run.call_args_list)
