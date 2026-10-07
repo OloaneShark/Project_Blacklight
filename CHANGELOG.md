@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Live Kubernetes `posture` scanner for default-ServiceAccount token automount, namespace NetworkPolicy presence, and explicit namespace-wide allow-all policies.
+- Conservative LOW/MEDIUM severity boundaries that avoid treating missing policy objects as proof of public exposure or effective CNI behavior.
+- Posture scanner unit, registry, CLI gate, shell-safety, partial-permission, and documentation coverage.
+
+### Added
+
 - Live Kubernetes `rbac` scanner that resolves RoleBinding/ClusterRoleBinding grants to their referenced live roles.
 - Deterministic bound-permission checks for wildcard access, Secret reads, pod exec, impersonation, and broad built-in cluster-admin subjects.
 - RBAC scanner unit, registry, CLI gate, shell-safety, permission-gap, and documentation coverage.
