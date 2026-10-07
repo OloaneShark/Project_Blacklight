@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Deeper live Docker runtime checks for sensitive host bind mounts, individually added dangerous Linux capabilities, host device passthrough/device-cgroup rules, and host UTS/cgroup namespaces.
+- Deterministic `docker.daemon.root_with_writable_sensitive_host_mount` risk correlation for same-container root configuration plus writable sensitive host exposure.
+- Docker runtime unit, CLI gate, correlation-boundary, and documentation coverage for the new checks.
+
+### Added
+
 - Live Kubernetes `posture` scanner for default-ServiceAccount token automount, namespace NetworkPolicy presence, and explicit namespace-wide allow-all policies.
 - Conservative LOW/MEDIUM severity boundaries that avoid treating missing policy objects as proof of public exposure or effective CNI behavior.
 - Posture scanner unit, registry, CLI gate, shell-safety, partial-permission, and documentation coverage.
