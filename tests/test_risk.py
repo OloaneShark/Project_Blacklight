@@ -342,3 +342,71 @@ def test_kubernetes_runtime_correlation_does_not_cross_pods():
     assert "kubernetes.cluster.privileged_with_host_path" not in correlation_ids(
         assessment
     )
+
+
+def test_root_docker_container_with_writable_sensitive_mount_correlates():
+    findings = [
+        runtime_finding(
+            "docker",
+            "docker.daemon.root_user",
+            "daemon",
+            "container/app/abc123",
+            Severity.HIGH,
+        ),
+        Finding(
+            check_id="docker.daemon.sensitive_host_mount",
+            provider="docker",
+            service="daemon",
+            resource_type="docker_container",
+            resource_id="container/app/abc123",
+            severity=Severity.HIGH,
+            title="test",
+            description="test",
+            evidence={
+                "writable_mounts": [
+                    {
+                        "source": "/etc",
+                        "destination": "/host-etc",
+                        "read_write": True,
+                    }
+                ]
+            },
+        ),
+    ]
+
+    assessment = assess_risk(findings)
+
+    assert (
+        "docker.daemon.root_with_writable_sensitive_host_mount"
+        in correlation_ids(assessment)
+    )
+
+
+def test_root_docker_container_with_readonly_sensitive_mount_does_not_correlate():
+    findings = [
+        runtime_finding(
+            "docker",
+            "docker.daemon.root_user",
+            "daemon",
+            "container/app/abc123",
+            Severity.HIGH,
+        ),
+        Finding(
+            check_id="docker.daemon.sensitive_host_mount",
+            provider="docker",
+            service="daemon",
+            resource_type="docker_container",
+            resource_id="container/app/abc123",
+            severity=Severity.MEDIUM,
+            title="test",
+            description="test",
+            evidence={"writable_mounts": []},
+        ),
+    ]
+
+    assessment = assess_risk(findings)
+
+    assert (
+        "docker.daemon.root_with_writable_sensitive_host_mount"
+        not in correlation_ids(assessment)
+    )
