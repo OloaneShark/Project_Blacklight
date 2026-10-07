@@ -136,3 +136,53 @@ def test_docker_cli_default_remains_static_dockerfile_scan(tmp_path):
 
     assert exit_code == 0
     docker_run.assert_not_called()
+
+
+def test_docker_cli_can_gate_writable_sensitive_host_mount(capsys):
+    container = {
+        "Id": "a" * 64,
+        "Name": "/app",
+        "HostConfig": {
+            "Privileged": False,
+            "NetworkMode": "bridge",
+            "PidMode": "",
+            "IpcMode": "private",
+            "CapAdd": None,
+            "SecurityOpt": [],
+            "Devices": [],
+        },
+        "Config": {"User": "1000"},
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/etc",
+                "Destination": "/host-etc",
+                "RW": True,
+            }
+        ],
+        "NetworkSettings": {"Ports": {}},
+    }
+    responses = [
+        subprocess.CompletedProcess([], 0, '{"Version":"28.0"}', ""),
+        subprocess.CompletedProcess([], 0, "a" * 64, ""),
+        subprocess.CompletedProcess([], 0, json.dumps([container]), ""),
+    ]
+
+    with patch(
+        "blacklight_security.scanners.docker.daemon.subprocess.run",
+        side_effect=responses,
+    ):
+        exit_code = main(
+            [
+                "scan",
+                "docker",
+                "--service",
+                "daemon",
+                "--fail-on",
+                "high",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "writable sensitive host-path mounts" in output.out

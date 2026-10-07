@@ -42,6 +42,47 @@ class DockerCLI:
         )
 
 
+_SENSITIVE_HOST_PATHS = (
+    "/etc",
+    "/proc",
+    "/sys",
+    "/dev",
+    "/boot",
+    "/root",
+    "/var/lib/docker",
+    "/var/lib/kubelet",
+    "/run/containerd",
+    "/var/run/containerd",
+)
+_HIGH_RISK_CAPABILITIES = {
+    "SYS_ADMIN",
+    "SYS_MODULE",
+    "SYS_RAWIO",
+    "SYS_BOOT",
+    "DAC_READ_SEARCH",
+    "DAC_OVERRIDE",
+}
+_MEDIUM_RISK_CAPABILITIES = {
+    "SYS_PTRACE",
+    "NET_ADMIN",
+    "NET_RAW",
+    "MKNOD",
+    "AUDIT_CONTROL",
+    "MAC_ADMIN",
+}
+_HIGH_RISK_DEVICE_PREFIXES = (
+    "/dev/mem",
+    "/dev/kmem",
+    "/dev/kmsg",
+    "/dev/sd",
+    "/dev/vd",
+    "/dev/xvd",
+    "/dev/nvme",
+    "/dev/mapper",
+    "/dev/loop",
+)
+
+
 class DockerDaemonScanner:
     """Read-only inspection of currently running Docker containers."""
 
@@ -154,7 +195,10 @@ class DockerDaemonScanner:
             self._check_privileged(resource_id, host_config),
             self._check_host_namespaces(resource_id, host_config),
             self._check_docker_socket(resource_id, container),
+            self._check_sensitive_host_mounts(resource_id, container),
             self._check_capabilities(resource_id, host_config),
+            self._check_dangerous_capabilities(resource_id, host_config),
+            self._check_device_access(resource_id, host_config),
             self._check_unconfined_security(resource_id, host_config),
             self._check_runtime_user(resource_id, config),
             self._check_published_ports(resource_id, network),
@@ -193,6 +237,10 @@ class DockerDaemonScanner:
             enabled.append("pid")
         if str(host_config.get("IpcMode") or "").lower() == "host":
             enabled.append("ipc")
+        if str(host_config.get("UTSMode") or "").lower() == "host":
+            enabled.append("uts")
+        if str(host_config.get("CgroupnsMode") or "").lower() == "host":
+            enabled.append("cgroup")
 
         if enabled:
             return self._finding(
@@ -266,6 +314,195 @@ class DockerDaemonScanner:
             resource_id,
             "docker.daemon.docker_socket_mount",
             "Running container does not mount the selected Docker daemon socket paths",
+        )
+
+    def _check_sensitive_host_mounts(
+        self,
+        resource_id: str,
+        container: dict[str, Any],
+    ) -> Finding:
+        mounts = container.get("Mounts")
+        if not isinstance(mounts, list):
+            mounts = []
+
+        matches: list[dict[str, Any]] = []
+        for mount in mounts:
+            if not isinstance(mount, dict):
+                continue
+            if str(mount.get("Type") or "").lower() != "bind":
+                continue
+
+            source = str(mount.get("Source") or "")
+            if source in {"/var/run/docker.sock", "/run/docker.sock"}:
+                continue
+
+            sensitive = source == "/" or any(
+                source == prefix or source.startswith(prefix + "/")
+                for prefix in _SENSITIVE_HOST_PATHS
+            )
+            if not sensitive:
+                continue
+
+            matches.append(
+                {
+                    "source": source,
+                    "destination": str(mount.get("Destination") or ""),
+                    "read_write": bool(mount.get("RW")),
+                }
+            )
+
+        writable = [item for item in matches if item["read_write"]]
+        if writable:
+            return self._finding(
+                resource_id,
+                "docker.daemon.sensitive_host_mount",
+                Severity.HIGH,
+                "Running container has writable sensitive host-path mounts",
+                (
+                    "Docker inspect reports read-write bind mounts from sensitive host paths. "
+                    "A compromised container process may be able to modify host configuration, "
+                    "runtime state, devices, or container-platform data through these mounts."
+                ),
+                "Remove unnecessary host bind mounts or make them read-only and narrowly scoped.",
+                {"mounts": matches, "writable_mounts": writable},
+            )
+
+        if matches:
+            return self._finding(
+                resource_id,
+                "docker.daemon.sensitive_host_mount",
+                Severity.MEDIUM,
+                "Running container can read sensitive host paths",
+                (
+                    "Docker inspect reports read-only bind mounts from sensitive host paths. "
+                    "Read-only exposure can still disclose host configuration or runtime data."
+                ),
+                "Remove unnecessary host bind mounts and expose only the minimum required path.",
+                {"mounts": matches, "writable_mounts": []},
+            )
+
+        return self._pass(
+            resource_id,
+            "docker.daemon.sensitive_host_mount",
+            "No selected sensitive host-path bind mount was observed",
+        )
+
+    def _check_dangerous_capabilities(
+        self,
+        resource_id: str,
+        host_config: dict[str, Any],
+    ) -> Finding:
+        values = host_config.get("CapAdd")
+        if not isinstance(values, list):
+            values = []
+        added = {str(item).upper() for item in values if item}
+
+        high = sorted(added & _HIGH_RISK_CAPABILITIES)
+        medium = sorted(added & _MEDIUM_RISK_CAPABILITIES)
+
+        if high:
+            return self._finding(
+                resource_id,
+                "docker.daemon.dangerous_capability",
+                Severity.HIGH,
+                "Running container adds high-risk Linux capabilities",
+                (
+                    "Docker inspect reports individually added Linux capabilities associated "
+                    "with broad kernel, module, raw-I/O, or discretionary-access control."
+                ),
+                "Remove unnecessary added capabilities and grant only the minimum required set.",
+                {"high_risk": high, "medium_risk": medium},
+            )
+
+        if medium:
+            return self._finding(
+                resource_id,
+                "docker.daemon.dangerous_capability",
+                Severity.MEDIUM,
+                "Running container adds elevated Linux capabilities",
+                (
+                    "Docker inspect reports individually added capabilities that increase "
+                    "process, network, device, or audit-control authority."
+                ),
+                "Remove unnecessary added capabilities and grant only the minimum required set.",
+                {"high_risk": [], "medium_risk": medium},
+            )
+
+        return self._pass(
+            resource_id,
+            "docker.daemon.dangerous_capability",
+            "No selected individually added dangerous capability was observed",
+        )
+
+    def _check_device_access(
+        self,
+        resource_id: str,
+        host_config: dict[str, Any],
+    ) -> Finding:
+        raw_devices = host_config.get("Devices")
+        if not isinstance(raw_devices, list):
+            raw_devices = []
+
+        devices: list[dict[str, str]] = []
+        high_risk: list[dict[str, str]] = []
+        for item in raw_devices:
+            if not isinstance(item, dict):
+                continue
+            host_path = str(item.get("PathOnHost") or "")
+            record = {
+                "host_path": host_path,
+                "container_path": str(item.get("PathInContainer") or ""),
+                "permissions": str(item.get("CgroupPermissions") or ""),
+            }
+            devices.append(record)
+            if any(host_path.startswith(prefix) for prefix in _HIGH_RISK_DEVICE_PREFIXES):
+                high_risk.append(record)
+
+        cgroup_rules = host_config.get("DeviceCgroupRules")
+        if not isinstance(cgroup_rules, list):
+            cgroup_rules = []
+        broad_rules = [
+            str(rule)
+            for rule in cgroup_rules
+            if rule and ("*:*" in str(rule) or str(rule).strip().startswith("a "))
+        ]
+
+        if high_risk or broad_rules:
+            return self._finding(
+                resource_id,
+                "docker.daemon.device_access",
+                Severity.HIGH,
+                "Running container has high-risk host device access",
+                (
+                    "Docker inspect reports raw/sensitive device passthrough or broad device "
+                    "cgroup rules that expand access to host devices."
+                ),
+                "Remove unnecessary device passthrough and use the narrowest device permissions required.",
+                {
+                    "devices": devices,
+                    "high_risk_devices": high_risk,
+                    "broad_device_cgroup_rules": broad_rules,
+                },
+            )
+
+        if devices:
+            return self._finding(
+                resource_id,
+                "docker.daemon.device_access",
+                Severity.MEDIUM,
+                "Running container has explicit host device passthrough",
+                (
+                    "Docker inspect reports host devices mapped into the container. This is "
+                    "elevated hardware access and should be intentional."
+                ),
+                "Remove device mappings that are not required by the workload.",
+                {"devices": devices, "high_risk_devices": []},
+            )
+
+        return self._pass(
+            resource_id,
+            "docker.daemon.device_access",
+            "No explicit host device passthrough was observed",
         )
 
     def _check_capabilities(

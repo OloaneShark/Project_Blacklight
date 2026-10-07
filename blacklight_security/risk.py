@@ -135,6 +135,31 @@ def assess_risk(findings: list[Finding]) -> RiskAssessment:
                     )
                 )
 
+            resource_findings = [
+                finding
+                for finding in actionable
+                if finding.provider == provider
+                and finding.service == service
+                and finding.resource_id == resource_id
+            ]
+            writable_sensitive_mount = any(
+                finding.check_id == "docker.daemon.sensitive_host_mount"
+                and bool(finding.evidence.get("writable_mounts"))
+                for finding in resource_findings
+            )
+            if "docker.daemon.root_user" in checks and writable_sensitive_mount:
+                correlations.append(
+                    Correlation(
+                        "docker.daemon.root_with_writable_sensitive_host_mount",
+                        20,
+                        (
+                            "The same running container is configured as root and has a writable "
+                            "bind mount from a sensitive host path."
+                        ),
+                        (resource_id,),
+                    )
+                )
+
         if provider == "kubernetes" and service == "cluster":
             if {
                 "kubernetes.cluster.privileged_container",

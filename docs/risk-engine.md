@@ -110,3 +110,8 @@ Fires when the same live Pod contains a privileged container and also mounts a h
 Fires when the same live Pod contains a privileged container and also configures hostPort, combining elevated container privilege with direct node-network exposure.
 
 All four runtime rules use Blacklight's same-resource grouping. Findings on different containers or Pods do not correlate merely because they occur in the same scan.
+
+
+### `docker.daemon.root_with_writable_sensitive_host_mount` (+20)
+
+Fires when the same running Docker container is configured with the default/root user and also has a writable bind mount from one of Blacklight's selected sensitive host paths. Read-only sensitive mounts do not trigger this correlation.

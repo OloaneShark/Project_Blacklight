@@ -128,16 +128,26 @@ The `daemon` scanner uses the local Docker CLI with argument-list subprocess cal
 For each currently running container it checks:
 
 - privileged mode — CRITICAL
-- host network/PID/IPC namespace sharing — HIGH
+- host network/PID/IPC/UTS/cgroup namespace sharing — HIGH
 - Docker daemon socket mounts — CRITICAL when read-write, HIGH when observed read-only
 - `CapAdd: ALL` — HIGH
+- selected individually added high-risk Linux capabilities (for example `SYS_ADMIN`, `SYS_MODULE`, raw-I/O/DAC capabilities) — HIGH
+- selected elevated capabilities such as `SYS_PTRACE`, `NET_ADMIN`, `NET_RAW`, and `MKNOD` — MEDIUM
 - explicit unconfined seccomp/AppArmor options — HIGH
+- writable bind mounts from selected sensitive host paths such as `/`, `/etc`, `/proc`, `/sys`, `/dev`, `/var/lib/docker`, and `/var/lib/kubelet` — HIGH
+- read-only sensitive host-path bind mounts — MEDIUM
+- raw/sensitive host device passthrough or broad device-cgroup rules — HIGH
+- other explicit host device passthrough — MEDIUM
 - empty/root/UID-0 configured runtime user — HIGH
 - ports published on all host interfaces — LOW exposure inventory
 
 The configured-user check describes Docker's container configuration. An application can still voluntarily drop privileges after startup, so Blacklight does not claim every process remains root solely from `Config.User`.
 
 Published ports bound to `0.0.0.0` or `::` are LOW because this proves host-interface publication, not internet reachability or vulnerability.
+
+Sensitive bind-mount detection is limited to explicit Docker bind mounts from selected host paths. Docker volumes are not treated as host-path exposure by this check, and Docker socket mounts remain a separate higher-signal finding.
+
+The risk engine adds a deterministic correlation when the same container is configured to run as root and also has a writable sensitive host-path bind mount. Read-only sensitive mounts do not trigger that correlation.
 
 If the Docker CLI or daemon is unavailable, live-daemon inspection reports INFO availability context rather than breaking the independent static Dockerfile scanner.
 
