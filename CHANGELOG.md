@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Opt-in Docker `sbom` scanner for CycloneDX/SPDX JSON Package URL vulnerability matching against OSV.dev.
+- Batched OSV package queries with pagination, vulnerability-detail retrieval, deterministic severity mapping, and explicit INFO/ERROR handling when package coordinates or vulnerability details are incomplete.
+- SBOM scanner unit, registry, CLI gate, OSV version-rule, pagination, network-failure, and documentation coverage without uploading source code or image layers.
+
+### Added
+
 - Non-scoring live ServiceAccount token-use identity inventory for Pods whose token automount resolves to enabled.
 - Deterministic `kubernetes.serviceaccount.token_with_dangerous_rbac` correlation that matches the exact ServiceAccount subject across posture and RBAC findings.
 - Consolidated +30 cluster-admin, +25 wildcard, and +15 Secret-read/pod-exec/impersonation correlation tiers with cross-identity false-positive tests.
