@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Live Kubernetes `admission` scanner for Pod Security Admission enforcement and validating/mutating webhook fail-open posture.
+- Conservative Pod Security severity handling for missing, privileged, baseline, restricted, and unrecognized enforce labels on non-system namespaces with live Pods.
+- Admission webhook LOW/MEDIUM fail-open findings based on explicit `failurePolicy=Ignore` and wildcard match breadth, with unit, CLI-gate, shell-safety, permission-gap, and documentation coverage.
+
+### Added
+
 - Deeper live Docker runtime checks for sensitive host bind mounts, individually added dangerous Linux capabilities, host device passthrough/device-cgroup rules, and host UTS/cgroup namespaces.
 - Deterministic `docker.daemon.root_with_writable_sensitive_host_mount` risk correlation for same-container root configuration plus writable sensitive host exposure.
 - Docker runtime unit, CLI gate, correlation-boundary, and documentation coverage for the new checks.
