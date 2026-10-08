@@ -38,6 +38,12 @@ Inspect live NetworkPolicy and ServiceAccount posture:
 blacklight scan kubernetes --service posture --context production
 ```
 
+Inspect Pod Security Admission and admission-webhook posture:
+
+```bash
+blacklight scan kubernetes --service admission --context production
+```
+
 Run both manifest and live-cluster scanners:
 
 ```bash
@@ -103,6 +109,26 @@ A namespace-without-NetworkPolicy finding means there is no Kubernetes NetworkPo
 
 The allow-all check is deliberately narrow. Blacklight only reports the namespace-wide case where `podSelector: {}` combines with an empty ingress/egress rule. It does not currently attempt full selector-level policy coverage or effective CNI enforcement analysis.
 
+## Pod Security Admission and webhook posture
+
+The `admission` scanner reads live Namespaces, Pods, ValidatingWebhookConfigurations, and MutatingWebhookConfigurations.
+
+For non-system namespaces that currently contain Pods, Blacklight evaluates the built-in Pod Security Admission `pod-security.kubernetes.io/enforce` label:
+
+- no enforce label — LOW
+- `privileged` — MEDIUM
+- `baseline` — INFO
+- `restricted` — PASS
+- unrecognized value — INFO
+
+Built-in namespaces `kube-system`, `kube-public`, and `kube-node-lease` are excluded from the missing-enforcement finding to avoid treating normal system-workload requirements as application-policy failures.
+
+A missing enforce label does not prove that the namespace has no admission security. External admission controllers or provider-specific policy can enforce equivalent or stronger rules, so Blacklight reports only the missing built-in enforcement signal.
+
+For admission webhooks, Blacklight reports `failurePolicy=Ignore` because matching requests can continue if the webhook is unavailable or errors. Narrow fail-open webhooks are LOW. A fail-open webhook with wildcard API groups, versions, resources, or operations is MEDIUM because its unavailable decision can affect a broader request surface.
+
+Blacklight does not claim that every fail-open webhook is incorrect; some availability designs intentionally choose that behavior. The finding records the explicit live configuration and matching rules so the operator can evaluate whether fail-open behavior is acceptable for that webhook's role.
+
 ## Static-analysis boundary
 
 Blacklight does not infer runtime facts that the YAML cannot prove.
@@ -114,7 +140,7 @@ Blacklight still does **not** yet:
 - inspect node configuration directly
 - calculate transitive/effective RBAC privilege graphs beyond directly resolved live bindings
 - calculate selector-level/effective NetworkPolicy enforcement semantics
-- query admission-controller configuration
+- inspect control-plane admission-plugin flags that are not exposed through the Kubernetes API
 - scan container package CVEs
 - mutate manifests or live resources
 
