@@ -36,15 +36,29 @@ AWS scanners use boto3 read APIs and a dedicated least-privilege scanning identi
 
 ### Docker
 
-The Docker provider statically parses Dockerfiles from a local file or directory. It does not need the Docker daemon.
+The Docker provider has three scanner modes:
+
+- `dockerfile` statically parses Dockerfiles from a local file or directory without requiring a daemon
+- `daemon` performs explicit read-only inspection of currently running local containers through the Docker CLI
+- `sbom` reads CycloneDX/SPDX JSON package coordinates and queries OSV.dev for exact package-version vulnerability matches
+
+The SBOM scanner sends package URLs/versions from the selected SBOM to OSV. It does not upload source code, Dockerfiles, image layers, credentials, or environment variables.
 
 ### Kubernetes
 
-The Kubernetes provider statically parses workload YAML from a local file or directory. It does not need cluster credentials.
+The Kubernetes provider keeps static and live inspection separate:
+
+- `manifest` statically parses local workload YAML without cluster credentials
+- `cluster` reads live Pods and Service exposure through kubectl
+- `rbac` resolves live RoleBinding/ClusterRoleBinding grants
+- `posture` inspects ServiceAccount-token and NetworkPolicy posture
+- `admission` inspects Pod Security Admission labels and validating/mutating webhook fail-open posture
+
+All live Kubernetes scanners use read-only kubectl operations and preserve permission failures as coverage errors rather than inferring safe state.
 
 ### Server
 
-The server provider uses the local OpenSSH client with fixed read-only commands against Linux targets. Registered server scanners currently separate configuration-baseline checks from host-network visibility so coverage can identify which part of a server assessment was incomplete.
+The server provider uses the local OpenSSH client with fixed read-only commands against Linux targets. Registered server scanners separate baseline, network, hardening, account, authentication, package, service, TLS, and effective-OpenSSH inspection so coverage can identify exactly which part of a server assessment was incomplete.
 
 ## Findings
 
@@ -110,18 +124,18 @@ There is no desktop application, native executable, release installer, PyPI publ
 
 The registry/runner/finding architecture is intentionally reusable.
 
-The current server provider already demonstrates the pattern:
+The current live providers demonstrate the pattern:
 
 ```text
-SSH server target
+target or local artifact
         ↓
-fixed read-only evidence collection
+fixed/read-only evidence collection
         ↓
-baseline / network scanner
+registered provider scanner
         ↓
 Finding objects
         ↓
 existing risk/report/gate pipeline
 ```
 
-Additional server scanners or entirely new target types can follow the same contract without rebuilding Blacklight's findings, risk, coverage, gates, or reporting system.
+Docker daemon inspection, Kubernetes live-cluster/RBAC/admission inspection, Linux SSH scanning, and SBOM/OSV matching all feed the same normalized result pipeline. Additional scanners or entirely new target types can follow the same contract without rebuilding Blacklight's findings, risk, coverage, gates, or reporting system.
