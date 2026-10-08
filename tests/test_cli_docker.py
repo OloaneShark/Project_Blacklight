@@ -186,3 +186,57 @@ def test_docker_cli_can_gate_writable_sensitive_host_mount(capsys):
     output = capsys.readouterr()
     assert exit_code == 1
     assert "writable sensitive host-path mounts" in output.out
+
+
+def test_docker_cli_can_run_sbom_scanner_and_gate_high_vulnerability(tmp_path, capsys):
+    path = tmp_path / "app.cdx.json"
+    path.write_text(
+        json.dumps(
+            {
+                "bomFormat": "CycloneDX",
+                "specVersion": "1.6",
+                "components": [
+                    {
+                        "type": "library",
+                        "name": "jinja2",
+                        "version": "2.4.1",
+                        "purl": "pkg:pypi/jinja2",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    record = {
+        "id": "GHSA-test",
+        "summary": "Example vulnerability",
+        "database_specific": {"severity": "HIGH"},
+    }
+
+    with (
+        patch(
+            "blacklight_security.scanners.docker.sbom.OSVClient.query_batch",
+            return_value=[{"GHSA-test"}],
+        ),
+        patch(
+            "blacklight_security.scanners.docker.sbom.OSVClient.fetch_records",
+            return_value=({"GHSA-test": record}, {}),
+        ),
+    ):
+        exit_code = main(
+            [
+                "scan",
+                "docker",
+                "--service",
+                "sbom",
+                "--path",
+                str(path),
+                "--fail-on",
+                "high",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: sbom" in output.out
+    assert "known OSV vulnerability records" in output.out

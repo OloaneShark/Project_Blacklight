@@ -8,9 +8,9 @@ Blacklight reveals security weaknesses that are easy to miss in cloud and worklo
 
 ## Current capabilities
 
-Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, running local Docker containers, local Kubernetes workload manifests, live Kubernetes Pods/Service exposure and bound RBAC grants, live NetworkPolicy/ServiceAccount posture, and Pod Security Admission/admission-webhook posture, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service and TLS-certificate and effective-OpenSSH checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
+Blacklight currently scans Amazon S3, AWS IAM, CloudTrail, EC2 security groups, Amazon RDS, AWS Lambda, Amazon GuardDuty, local Dockerfiles, running local Docker containers, CycloneDX/SPDX SBOM package vulnerabilities via OSV.dev, local Kubernetes workload manifests, live Kubernetes Pods/Service exposure and bound RBAC grants, live NetworkPolicy/ServiceAccount posture, and Pod Security Admission/admission-webhook posture, and read-only Linux server baseline, network, host-hardening, account/privilege, and authentication-state, cached package-update, and running-service and TLS-certificate and effective-OpenSSH checks over SSH. Findings use stable check IDs, severities, evidence, and remediation guidance.
 
-The Docker provider defaults to static Dockerfile scanning for root runtime configuration, implicit/latest base-image tags, secret-like ARG/ENV values, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. Its explicit `daemon` scanner inspects currently running local containers for privileged mode, host namespaces, Docker-socket mounts, sensitive host bind mounts, dangerous individual capabilities, host device passthrough, unconfined runtime profiles, configured root users, and broad host-port publication. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
+The Docker provider defaults to static Dockerfile scanning for root runtime configuration, implicit/latest base-image tags, secret-like ARG/ENV values, unchecked remote ADD sources, curl/wget-to-shell pipelines, and chmod 777. Its explicit `daemon` scanner inspects currently running local containers for privileged mode, host namespaces, Docker-socket mounts, sensitive host bind mounts, dangerous individual capabilities, host device passthrough, unconfined runtime profiles, configured root users, and broad host-port publication. Its opt-in `sbom` scanner consumes CycloneDX/SPDX JSON Package URLs and queries OSV.dev for exact package-version vulnerability matches without uploading source code or image layers. See [docs/docker-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/docker-scanning.md).
 
 The Kubernetes provider defaults to static workload-manifest checks for privileged containers, explicit UID 0, privilege escalation, host namespace sharing, hostPath volumes, ALL capabilities, Unconfined seccomp, hostPort, mutable image tags, and literal secret-like environment values. Its explicit `cluster` scanner reads live Pods through kubectl using the same deterministic checks and adds LOW Service exposure inventory for NodePort/LoadBalancer/external-IP configurations. Its `rbac` scanner resolves live RoleBindings/ClusterRoleBindings to their referenced roles and flags bound wildcard, Secret-read, pod-exec, impersonation, and broad cluster-admin grants. Its `posture` scanner checks default-ServiceAccount token automount, namespaces with Pods but no NetworkPolicy, and explicit namespace-wide allow-all NetworkPolicies. It also records non-scoring live ServiceAccount token-use identity inventory so the risk engine can connect mounted workload credentials to RBAC grants for the exact same ServiceAccount. Its `admission` scanner checks built-in Pod Security Admission enforcement on workload namespaces and fail-open validating/mutating admission webhooks. See [docs/kubernetes-scanning.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/kubernetes-scanning.md).
 
@@ -124,6 +124,12 @@ Inspect running local Docker containers:
 
 ```bash
 blacklight scan docker --service daemon
+```
+
+Scan an SBOM for known package vulnerabilities:
+
+```bash
+blacklight scan docker --service sbom --path ./app.cdx.json
 ```
 
 Scan Kubernetes manifests:
@@ -311,7 +317,8 @@ blacklight_security/
     │   └── guardduty.py
     ├── docker/
     │   ├── dockerfile.py
-    │   └── daemon.py
+    │   ├── daemon.py
+    │   └── sbom.py
     ├── kubernetes/
     │   ├── manifests.py
     │   ├── cluster.py
@@ -342,7 +349,7 @@ Future expansion is intentionally a new phase rather than unfinished core work:
 
 - deeper Linux server service/configuration checks and broader package-manager security metadata
 - deeper AWS/Docker/Kubernetes checks
-- deeper Kubernetes RBAC/network/admission inspection and Docker image/runtime analysis
+- deeper Kubernetes policy inspection and direct Docker image/SBOM generation plus vulnerability remediation depth
 - additional cloud providers
 - packaging or UI work only if the project direction calls for it later
 - richer third-party scanner/analyst extension points
