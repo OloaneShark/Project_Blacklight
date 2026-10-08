@@ -410,3 +410,164 @@ def test_root_docker_container_with_readonly_sensitive_mount_does_not_correlate(
         "docker.daemon.root_with_writable_sensitive_host_mount"
         not in correlation_ids(assessment)
     )
+
+
+def test_mounted_serviceaccount_token_with_wildcard_rbac_correlates_once():
+    token = Finding(
+        check_id="kubernetes.posture.service_account_token_usage",
+        provider="kubernetes",
+        service="posture",
+        resource_type="kubernetes_live_posture",
+        resource_id="ServiceAccount/team-a/deployer",
+        severity=Severity.INFO,
+        title="test",
+        description="test",
+        evidence={
+            "namespace": "team-a",
+            "service_account": "deployer",
+            "pods": [{"pod": "api", "source": "kubernetes-default"}],
+        },
+    )
+    wildcard = Finding(
+        check_id="kubernetes.rbac.bound_wildcard",
+        provider="kubernetes",
+        service="rbac",
+        resource_type="kubernetes_rbac_binding",
+        resource_id="RoleBinding/team-a/deployer-admin",
+        severity=Severity.HIGH,
+        title="test",
+        description="test",
+        evidence={
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "deployer",
+                    "namespace": "team-a",
+                }
+            ]
+        },
+    )
+    secret_read = Finding(
+        check_id="kubernetes.rbac.secret_read",
+        provider="kubernetes",
+        service="rbac",
+        resource_type="kubernetes_rbac_binding",
+        resource_id="RoleBinding/team-a/deployer-admin",
+        severity=Severity.HIGH,
+        title="test",
+        description="test",
+        evidence={
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "deployer",
+                    "namespace": "team-a",
+                }
+            ]
+        },
+    )
+
+    assessment = assess_risk([token, wildcard, secret_read])
+
+    matches = [
+        item
+        for item in assessment.correlations
+        if item.rule_id == "kubernetes.serviceaccount.token_with_dangerous_rbac"
+    ]
+    assert len(matches) == 1
+    assert matches[0].points == 25
+    assert "ServiceAccount/team-a/deployer" in matches[0].resources
+
+
+def test_mounted_serviceaccount_token_with_cluster_admin_inventory_correlates():
+    findings = [
+        Finding(
+            check_id="kubernetes.posture.service_account_token_usage",
+            provider="kubernetes",
+            service="posture",
+            resource_type="kubernetes_live_posture",
+            resource_id="ServiceAccount/team-a/deployer",
+            severity=Severity.INFO,
+            title="test",
+            description="test",
+            evidence={
+                "namespace": "team-a",
+                "service_account": "deployer",
+            },
+        ),
+        Finding(
+            check_id="kubernetes.rbac.cluster_admin_binding",
+            provider="kubernetes",
+            service="rbac",
+            resource_type="kubernetes_rbac_binding",
+            resource_id="ClusterRoleBinding/cluster/deployer-admin",
+            severity=Severity.INFO,
+            title="test",
+            description="test",
+            evidence={
+                "subjects": [
+                    {
+                        "kind": "ServiceAccount",
+                        "name": "deployer",
+                        "namespace": "team-a",
+                    }
+                ]
+            },
+        ),
+    ]
+
+    assessment = assess_risk(findings)
+
+    match = next(
+        item
+        for item in assessment.correlations
+        if item.rule_id == "kubernetes.serviceaccount.token_with_dangerous_rbac"
+    )
+    assert match.points == 30
+    assert assessment.base_score == 0
+    assert assessment.score == 30
+
+
+def test_serviceaccount_rbac_correlation_does_not_cross_identities():
+    findings = [
+        Finding(
+            check_id="kubernetes.posture.service_account_token_usage",
+            provider="kubernetes",
+            service="posture",
+            resource_type="kubernetes_live_posture",
+            resource_id="ServiceAccount/team-a/app",
+            severity=Severity.INFO,
+            title="test",
+            description="test",
+            evidence={
+                "namespace": "team-a",
+                "service_account": "app",
+            },
+        ),
+        Finding(
+            check_id="kubernetes.rbac.bound_wildcard",
+            provider="kubernetes",
+            service="rbac",
+            resource_type="kubernetes_rbac_binding",
+            resource_id="RoleBinding/team-a/deployer-admin",
+            severity=Severity.HIGH,
+            title="test",
+            description="test",
+            evidence={
+                "subjects": [
+                    {
+                        "kind": "ServiceAccount",
+                        "name": "deployer",
+                        "namespace": "team-a",
+                    }
+                ]
+            },
+        ),
+    ]
+
+    assessment = assess_risk(findings)
+
+    assert (
+        "kubernetes.serviceaccount.token_with_dangerous_rbac"
+        not in correlation_ids(assessment)
+    )
