@@ -183,3 +183,88 @@ def test_posture_scanner_keeps_partial_permission_gap_and_other_results():
         and finding.severity is Severity.LOW
         for finding in findings
     )
+
+
+def test_posture_scanner_inventories_custom_serviceaccount_token_usage():
+    pods = {
+        "items": [
+            {
+                "metadata": {"name": "api", "namespace": "team-a"},
+                "spec": {
+                    "serviceAccountName": "deployer",
+                    "containers": [],
+                },
+            }
+        ]
+    }
+    service_accounts = {
+        "items": [
+            {
+                "metadata": {"name": "deployer", "namespace": "team-a"},
+            }
+        ]
+    }
+    responses = [
+        subprocess.CompletedProcess([], 0, '{"clientVersion":{}}', ""),
+        _cp(pods),
+        _cp(service_accounts),
+        _cp({"items": []}),
+    ]
+
+    with patch(
+        "blacklight_security.scanners.kubernetes.cluster.subprocess.run",
+        side_effect=responses,
+    ):
+        findings = KubernetesPostureScanner(KubernetesScanTarget(path=".")).scan()
+
+    finding = next(
+        item
+        for item in findings
+        if item.check_id == "kubernetes.posture.service_account_token_usage"
+        and item.resource_id == "ServiceAccount/team-a/deployer"
+    )
+    assert finding.severity is Severity.INFO
+    assert finding.evidence["service_account"] == "deployer"
+    assert finding.evidence["pod_count"] == 1
+
+
+def test_posture_scanner_does_not_inventory_disabled_custom_serviceaccount_token():
+    pods = {
+        "items": [
+            {
+                "metadata": {"name": "api", "namespace": "team-a"},
+                "spec": {
+                    "serviceAccountName": "deployer",
+                    "automountServiceAccountToken": False,
+                    "containers": [],
+                },
+            }
+        ]
+    }
+    service_accounts = {
+        "items": [
+            {
+                "metadata": {"name": "deployer", "namespace": "team-a"},
+            }
+        ]
+    }
+    responses = [
+        subprocess.CompletedProcess([], 0, '{"clientVersion":{}}', ""),
+        _cp(pods),
+        _cp(service_accounts),
+        _cp({"items": []}),
+    ]
+
+    with patch(
+        "blacklight_security.scanners.kubernetes.cluster.subprocess.run",
+        side_effect=responses,
+    ):
+        findings = KubernetesPostureScanner(KubernetesScanTarget(path=".")).scan()
+
+    token_findings = [
+        item
+        for item in findings
+        if item.check_id == "kubernetes.posture.service_account_token_usage"
+    ]
+    assert len(token_findings) == 1
+    assert token_findings[0].severity is Severity.PASS

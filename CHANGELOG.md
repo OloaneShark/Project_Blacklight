@@ -6,6 +6,12 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Non-scoring live ServiceAccount token-use identity inventory for Pods whose token automount resolves to enabled.
+- Deterministic `kubernetes.serviceaccount.token_with_dangerous_rbac` correlation that matches the exact ServiceAccount subject across posture and RBAC findings.
+- Consolidated +30 cluster-admin, +25 wildcard, and +15 Secret-read/pod-exec/impersonation correlation tiers with cross-identity false-positive tests.
+
+### Added
+
 - Live Kubernetes `admission` scanner for Pod Security Admission enforcement and validating/mutating webhook fail-open posture.
 - Conservative Pod Security severity handling for missing, privileged, baseline, restricted, and unrecognized enforce labels on non-system namespaces with live Pods.
 - Admission webhook LOW/MEDIUM fail-open findings based on explicit `failurePolicy=Ignore` and wildcard match breadth, with unit, CLI-gate, shell-safety, permission-gap, and documentation coverage.

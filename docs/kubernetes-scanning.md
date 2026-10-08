@@ -103,11 +103,13 @@ The `posture` scanner reads live Pods, ServiceAccounts, and NetworkPolicies and 
 - namespaces that contain live Pods but no NetworkPolicy objects — LOW
 - NetworkPolicies that select all Pods in a namespace and contain an empty ingress or egress rule, explicitly allowing all traffic in that direction — MEDIUM
 
-ServiceAccount-token evaluation follows Kubernetes precedence: an explicit Pod setting wins, then the ServiceAccount setting, then the Kubernetes default of enabled. Blacklight aggregates affected default-ServiceAccount Pods by namespace instead of adding risk points once per Pod.
+ServiceAccount-token evaluation follows Kubernetes precedence: an explicit Pod setting wins, then the ServiceAccount setting, then the Kubernetes default of enabled. Blacklight aggregates affected default-ServiceAccount Pods by namespace instead of adding risk points once per Pod. It also records INFO identity inventory for every ServiceAccount actually used by live Pods with an effective token mount; that inventory adds no base risk by itself.
 
 A namespace-without-NetworkPolicy finding means there is no Kubernetes NetworkPolicy object in that namespace. It does not prove the cluster CNI supports/enforces NetworkPolicy or that external network controls do not exist.
 
 The allow-all check is deliberately narrow. Blacklight only reports the namespace-wide case where `podSelector: {}` combines with an empty ingress/egress rule. It does not currently attempt full selector-level policy coverage or effective CNI enforcement analysis.
+
+When a single scan contains both `posture` and `rbac` findings, the risk engine correlates live ServiceAccount token usage with RBAC grants bound to the exact same ServiceAccount identity. `cluster-admin` bindings add 30 correlation points, bound wildcard RBAC adds 25, and selected Secret-read/pod-exec/impersonation grants add 15. Multiple dangerous checks from the same identity are consolidated into one correlation rather than stacked repeatedly. The current CLI produces both finding sets together with `blacklight scan kubernetes --service all --path <manifest-path>`.
 
 ## Pod Security Admission and webhook posture
 
