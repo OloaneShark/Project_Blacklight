@@ -115,3 +115,16 @@ All four runtime rules use Blacklight's same-resource grouping. Findings on diff
 ### `docker.daemon.root_with_writable_sensitive_host_mount` (+20)
 
 Fires when the same running Docker container is configured with the default/root user and also has a writable bind mount from one of Blacklight's selected sensitive host paths. Read-only sensitive mounts do not trigger this correlation.
+
+
+### `kubernetes.serviceaccount.token_with_dangerous_rbac` (+15 / +25 / +30)
+
+Fires when Blacklight observes live Pods with an effectively auto-mounted token for a specific ServiceAccount and the RBAC scanner resolves a dangerous live binding to that exact ServiceAccount subject.
+
+The rule adds:
+
+- +30 for an explicit `cluster-admin` binding
+- +25 for a bound wildcard verbs + wildcard resources grant
+- +15 for selected Secret-read, `pods/exec`, or impersonation grants
+
+The identity match uses namespace + ServiceAccount name. Findings for a different ServiceAccount in the same namespace do not correlate. Multiple dangerous findings tied to the same ServiceAccount are consolidated into one correlation using the strongest matching tier.
