@@ -45,7 +45,7 @@ class SBOMPackage:
     def query_key(self) -> str:
         if _purl_has_version(self.purl) or not self.version:
             return self.purl
-        return f"{self.purl}@{self.version}"
+        return _purl_with_version(self.purl, self.version)
 
 
 class OSVClientError(RuntimeError):
@@ -626,3 +626,17 @@ class DockerSBOMScanner:
 def _purl_has_version(purl: str) -> bool:
     core = purl.split("#", 1)[0].split("?", 1)[0]
     return core.rfind("@") > core.rfind("/")
+
+
+def _purl_with_version(purl: str, version: str) -> str:
+    fragment = ""
+    if "#" in purl:
+        purl, raw_fragment = purl.split("#", 1)
+        fragment = f"#{raw_fragment}"
+
+    qualifiers = ""
+    if "?" in purl:
+        purl, raw_qualifiers = purl.split("?", 1)
+        qualifiers = f"?{raw_qualifiers}"
+
+    return f"{purl}@{version}{qualifiers}{fragment}"
