@@ -42,6 +42,12 @@ Inspect currently running containers through the local Docker CLI:
 blacklight scan docker --service daemon
 ```
 
+Scan a CycloneDX or SPDX JSON SBOM against OSV.dev:
+
+```bash
+blacklight scan docker --service sbom --path ./app.cdx.json
+```
+
 Run both static Dockerfile and live-daemon scanners:
 
 ```bash
@@ -151,11 +157,40 @@ The risk engine adds a deterministic correlation when the same container is conf
 
 If the Docker CLI or daemon is unavailable, live-daemon inspection reports INFO availability context rather than breaking the independent static Dockerfile scanner.
 
+## SBOM vulnerability scanning
+
+The opt-in `sbom` scanner reads CycloneDX JSON or SPDX JSON package metadata and queries OSV.dev for exact versioned package coordinates.
+
+Supported package identity currently requires Package URLs (purl):
+
+- CycloneDX: component `purl`, with either a version embedded in the purl or a component `version`
+- SPDX JSON: a purl external reference, with either a version embedded in the purl or `versionInfo`
+
+When a purl already contains a version, Blacklight sends the versioned purl only. When the purl is unversioned, Blacklight sends the purl plus the SBOM version field. This follows the OSV API rule that a query must not specify the version in both places.
+
+Blacklight first uses the OSV batch-query endpoint to match package coordinates to vulnerability IDs. It then retrieves vulnerability records for severity metadata. Explicit categorical severity such as CRITICAL/HIGH/MODERATE/LOW is mapped to Blacklight severity; plain numeric scores are mapped by standard 9.0/7.0/4.0 thresholds. If OSV confirms a vulnerability ID but Blacklight cannot retrieve or interpret severity details, the package match remains INFO rather than inventing a severity.
+
+The scanner does not upload source code, Dockerfiles, image layers, credentials, or environment variables to OSV. It sends package URLs/versions from the selected SBOM. Network access to `api.osv.dev` is required for vulnerability matching.
+
+No SBOM, an SBOM with no queryable versioned package coordinates, or unavailable vulnerability detail data never becomes a false clean result. Blacklight reports INFO or ERROR coverage context instead.
+
+Directory discovery recognizes:
+
+```text
+bom.json
+sbom.json
+*.cdx.json
+*.cyclonedx.json
+*.spdx.json
+```
+
+Blacklight currently consumes an existing SBOM; it does not generate one from a Docker image itself.
+
 ## Current Docker boundaries
 
 Blacklight still does **not** yet:
 
-- scan installed container-image OS/package CVEs
+- generate package inventories/SBOMs directly from local Docker image layers
 - inspect Docker Compose effective configuration
 - execute commands inside containers
 - mutate Docker daemon/container state
@@ -180,7 +215,7 @@ risk / coverage / CI gates
 console / JSON / HTML reports
 ```
 
-No AI model decides whether a Dockerfile or live-daemon finding exists.
+No AI model decides whether a Dockerfile, live-daemon, or SBOM vulnerability finding exists.
 
 ## CI example
 
