@@ -69,6 +69,9 @@ class KubernetesPostureScanner:
 
         if "pods" in inventories and "serviceaccounts" in inventories:
             findings.extend(
+                self._check_service_account_token_usage(pods, service_accounts)
+            )
+            findings.extend(
                 self._check_default_service_account_tokens(pods, service_accounts)
             )
 
@@ -95,6 +98,102 @@ class KubernetesPostureScanner:
             )
 
         return findings
+
+    def _check_service_account_token_usage(
+        self,
+        pods: list[dict[str, Any]],
+        service_accounts: list[dict[str, Any]],
+    ) -> list[Finding]:
+        sa_index: dict[tuple[str, str], dict[str, Any]] = {}
+        for service_account in service_accounts:
+            metadata = self._metadata(service_account)
+            namespace = str(metadata.get("namespace") or "default")
+            name = str(metadata.get("name") or "")
+            if name:
+                sa_index[(namespace, name)] = service_account
+
+        usage: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
+
+        for pod in pods:
+            metadata = self._metadata(pod)
+            spec = pod.get("spec")
+            if not isinstance(spec, dict):
+                continue
+
+            namespace = str(metadata.get("namespace") or "default")
+            pod_name = str(metadata.get("name") or "unknown")
+            service_account_name = str(
+                spec.get("serviceAccountName")
+                or spec.get("serviceAccount")
+                or "default"
+            )
+
+            service_account = sa_index.get((namespace, service_account_name), {})
+            effective, source = self._effective_token_automount(spec, service_account)
+            if not effective:
+                continue
+
+            usage[(namespace, service_account_name)].append(
+                {
+                    "pod": pod_name,
+                    "source": source,
+                }
+            )
+
+        if not usage:
+            return [
+                self._finding(
+                    "cluster",
+                    "kubernetes.posture.service_account_token_usage",
+                    Severity.PASS,
+                    "No live Pod was observed with an effective ServiceAccount token mount",
+                    (
+                        "Blacklight did not observe a live Pod whose ServiceAccount token "
+                        "automount resolves to enabled."
+                    ),
+                )
+            ]
+
+        findings: list[Finding] = []
+        for (namespace, service_account_name), pod_records in sorted(usage.items()):
+            findings.append(
+                self._finding(
+                    f"ServiceAccount/{namespace}/{service_account_name}",
+                    "kubernetes.posture.service_account_token_usage",
+                    Severity.INFO,
+                    "Live Pods use a ServiceAccount with API token automount enabled",
+                    (
+                        "Blacklight observed one or more live Pods using this ServiceAccount "
+                        "where automountServiceAccountToken resolves to enabled. This is identity "
+                        "inventory for correlation and is not independently scored as a security issue."
+                    ),
+                    evidence={
+                        "namespace": namespace,
+                        "service_account": service_account_name,
+                        "pods": sorted(pod_records, key=lambda item: item["pod"]),
+                        "pod_count": len(pod_records),
+                    },
+                )
+            )
+        return findings
+
+    @staticmethod
+    def _effective_token_automount(
+        pod_spec: dict[str, Any],
+        service_account: dict[str, Any],
+    ) -> tuple[bool, str]:
+        pod_setting = pod_spec.get("automountServiceAccountToken")
+        sa_setting = (
+            service_account.get("automountServiceAccountToken")
+            if isinstance(service_account, dict)
+            else None
+        )
+
+        if isinstance(pod_setting, bool):
+            return pod_setting, "pod"
+        if isinstance(sa_setting, bool):
+            return sa_setting, "serviceaccount"
+        return True, "kubernetes-default"
 
     def _check_default_service_account_tokens(
         self,
@@ -127,23 +226,8 @@ class KubernetesPostureScanner:
             if service_account_name != "default":
                 continue
 
-            pod_setting = spec.get("automountServiceAccountToken")
             sa = sa_index.get((namespace, service_account_name), {})
-            sa_setting = (
-                sa.get("automountServiceAccountToken")
-                if isinstance(sa, dict)
-                else None
-            )
-
-            if isinstance(pod_setting, bool):
-                effective = pod_setting
-                source = "pod"
-            elif isinstance(sa_setting, bool):
-                effective = sa_setting
-                source = "serviceaccount"
-            else:
-                effective = True
-                source = "kubernetes-default"
+            effective, source = self._effective_token_automount(spec, sa)
 
             if effective:
                 by_namespace[namespace].append(f"{pod_name} ({source})")
