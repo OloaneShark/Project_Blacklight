@@ -243,3 +243,48 @@ def test_osv_batch_pagination_accumulates_ids():
     assert request.call_count == 2
     second_payload = request.call_args_list[1].args[1]
     assert second_payload["queries"][0]["page_token"] == "next"
+
+
+def test_sbom_resource_id_inserts_version_before_purl_qualifiers(tmp_path):
+    path = tmp_path / "qualified.cdx.json"
+    path.write_text(
+        json.dumps(
+            _cyclonedx(
+                {
+                    "type": "library",
+                    "name": "example",
+                    "version": "1.2.3",
+                    "purl": "pkg:pypi/example?repository_url=https%3A%2F%2Fexample.test",
+                }
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    with (
+        patch.object(OSVClient, "query_batch", return_value=[{"OSV-1"}]),
+        patch.object(
+            OSVClient,
+            "fetch_records",
+            return_value=(
+                {
+                    "OSV-1": {
+                        "id": "OSV-1",
+                        "database_specific": {"severity": "LOW"},
+                    }
+                },
+                {},
+            ),
+        ),
+    ):
+        findings = DockerSBOMScanner(DockerScanTarget(path=path)).scan()
+
+    finding = next(
+        item
+        for item in findings
+        if item.check_id == "docker.sbom.known_vulnerabilities"
+    )
+    assert (
+        finding.resource_id
+        == "pkg:pypi/example@1.2.3?repository_url=https%3A%2F%2Fexample.test"
+    )
