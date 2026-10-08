@@ -79,6 +79,110 @@ def _same_resource_checks(
     return grouped
 
 
+def _kubernetes_serviceaccount_correlations(
+    findings: list[Finding],
+) -> list[Correlation]:
+    token_usage: set[tuple[str, str]] = set()
+    for finding in findings:
+        if (
+            finding.provider != "kubernetes"
+            or finding.service != "posture"
+            or finding.check_id != "kubernetes.posture.service_account_token_usage"
+            or finding.severity not in {Severity.INFO, Severity.LOW}
+        ):
+            continue
+
+        namespace = str(finding.evidence.get("namespace") or "")
+        service_account = str(finding.evidence.get("service_account") or "")
+        if namespace and service_account:
+            token_usage.add((namespace, service_account))
+
+    if not token_usage:
+        return []
+
+    supported_checks = {
+        "kubernetes.rbac.cluster_admin_binding",
+        "kubernetes.rbac.bound_wildcard",
+        "kubernetes.rbac.secret_read",
+        "kubernetes.rbac.pod_exec",
+        "kubernetes.rbac.impersonate",
+    }
+    grants: dict[tuple[str, str], dict[str, set[str]]] = {}
+
+    for finding in findings:
+        if (
+            finding.provider != "kubernetes"
+            or finding.service != "rbac"
+            or finding.check_id not in supported_checks
+        ):
+            continue
+
+        subjects = finding.evidence.get("subjects")
+        if not isinstance(subjects, list):
+            continue
+
+        binding_namespace = ""
+        parts = finding.resource_id.split("/")
+        if len(parts) >= 3 and parts[0] == "RoleBinding":
+            binding_namespace = parts[1]
+
+        for subject in subjects:
+            if not isinstance(subject, dict):
+                continue
+            if str(subject.get("kind") or "").lower() != "serviceaccount":
+                continue
+
+            service_account = str(subject.get("name") or "")
+            namespace = str(subject.get("namespace") or binding_namespace)
+            key = (namespace, service_account)
+            if not namespace or not service_account or key not in token_usage:
+                continue
+
+            grant = grants.setdefault(
+                key,
+                {
+                    "checks": set(),
+                    "bindings": set(),
+                },
+            )
+            grant["checks"].add(finding.check_id)
+            grant["bindings"].add(finding.resource_id)
+
+    correlations: list[Correlation] = []
+    for (namespace, service_account), grant in sorted(grants.items()):
+        checks = grant["checks"]
+        if "kubernetes.rbac.cluster_admin_binding" in checks:
+            points = 30
+            level = "cluster-admin"
+        elif "kubernetes.rbac.bound_wildcard" in checks:
+            points = 25
+            level = "wildcard RBAC"
+        else:
+            points = 15
+            level = "dangerous RBAC"
+
+        bindings = tuple(sorted(grant["bindings"]))
+        resources = (
+            f"ServiceAccount/{namespace}/{service_account}",
+            *bindings,
+        )
+        correlations.append(
+            Correlation(
+                "kubernetes.serviceaccount.token_with_dangerous_rbac",
+                points,
+                (
+                    f"Live Pods have an auto-mounted token for ServiceAccount "
+                    f"{namespace}/{service_account}, and that identity is directly bound to "
+                    f"{level} permissions. The correlation is based on the same explicit "
+                    f"ServiceAccount subject, not namespace proximity."
+                ),
+                resources,
+            )
+        )
+
+    return correlations
+
+
 def assess_risk(findings: list[Finding]) -> RiskAssessment:
     actionable = [finding for finding in findings if finding.severity in SEVERITY_WEIGHTS]
     base_score = min(100, sum(SEVERITY_WEIGHTS[finding.severity] for finding in actionable))
@@ -250,6 +354,8 @@ def assess_risk(findings: list[Finding]) -> RiskAssessment:
                     (resource_id,),
                 )
             )
+
+    correlations.extend(_kubernetes_serviceaccount_correlations(findings))
 
     cloudtrail_gaps = [
         finding
