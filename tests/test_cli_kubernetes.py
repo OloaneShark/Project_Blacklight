@@ -248,3 +248,49 @@ def test_kubernetes_cli_can_run_posture_scanner_and_gate_allow_all_policy(capsys
     assert "Scanners: posture" in output.out
     assert "explicitly allows all traffic" in output.out
     assert all(call.kwargs["shell"] is False for call in run.call_args_list)
+
+
+def test_kubernetes_cli_can_run_admission_scanner_and_gate_privileged_psa(capsys):
+    namespaces = {
+        "items": [
+            {
+                "metadata": {
+                    "name": "team-a",
+                    "labels": {"pod-security.kubernetes.io/enforce": "privileged"},
+                }
+            }
+        ]
+    }
+    pods = {
+        "items": [{"metadata": {"name": "app", "namespace": "team-a"}}]
+    }
+    responses = [
+        subprocess.CompletedProcess([], 0, '{"clientVersion":{}}', ""),
+        subprocess.CompletedProcess([], 0, json.dumps(namespaces), ""),
+        subprocess.CompletedProcess([], 0, json.dumps(pods), ""),
+        subprocess.CompletedProcess([], 0, json.dumps({"items": []}), ""),
+        subprocess.CompletedProcess([], 0, json.dumps({"items": []}), ""),
+    ]
+
+    with patch(
+        "blacklight_security.scanners.kubernetes.cluster.subprocess.run",
+        side_effect=responses,
+    ) as run:
+        exit_code = main(
+            [
+                "scan",
+                "kubernetes",
+                "--service",
+                "admission",
+                "--context",
+                "production",
+                "--fail-on",
+                "medium",
+            ]
+        )
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: admission" in output.out
+    assert "privileged Pod Security level" in output.out
+    assert all(call.kwargs["shell"] is False for call in run.call_args_list)
