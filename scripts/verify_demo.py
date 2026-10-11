@@ -88,7 +88,7 @@ def _assert_checks(payload: dict, expected: set[str], label: str) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Verify Project Blacklight's credential-free interview demo."
+        description="Verify Project Blacklight's credential-free public demo."
     )
     parser.add_argument(
         "--online",
@@ -264,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
             print("[PASS] online SBOM demo returned scored vulnerability data")
 
     print()
-    print("Blacklight interview demo verification passed.")
+    print("Blacklight public demo verification passed.")
     return 0
 
 

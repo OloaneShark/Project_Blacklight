@@ -1,4 +1,4 @@
-# Project Blacklight Interview Demo
+# Project Blacklight Demo Guide
 
 This walkthrough is designed to demonstrate Blacklight in a few minutes without requiring cloud credentials, a Docker daemon, a Kubernetes cluster, or real secrets.
 
@@ -123,13 +123,13 @@ Talking point:
 
 > Static manifest scanning and live-cluster scanning are separate on purpose. A source scan should never unexpectedly require cluster credentials.
 
-### 5. Generate an artifact an interviewer can inspect
+### 5. Generate an artifact that can be inspected
 
 ```bash
 blacklight scan docker \
   --path examples/demo/docker/insecure/Dockerfile \
   --format html \
-  --output reports/interview-demo.html
+  --output reports/blacklight-demo.html
 ```
 
 Or JSON:
@@ -138,7 +138,7 @@ Or JSON:
 blacklight scan kubernetes \
   --path examples/demo/kubernetes/insecure.yaml \
   --format json \
-  --output reports/interview-demo.json
+  --output reports/blacklight-demo.json
 ```
 
 Reports include normalized findings, evidence, remediation, risk, scan coverage, and optional CI-gate results.
@@ -218,7 +218,7 @@ This keeps detection independent from presentation and lets new scanners reuse t
 
 ## Examples of deliberate false-positive control
 
-These are strong interview examples because they show that the project does not simply flag keywords:
+These are strong examples because they show that the project does not simply flag keywords:
 
 - A powerful Kubernetes Role that is not bound to a subject is not treated as active RBAC exposure.
 - Runtime correlations require the same container, Pod, or exact ServiceAccount identity rather than combining unrelated findings from one scan.

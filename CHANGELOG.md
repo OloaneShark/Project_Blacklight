@@ -6,10 +6,10 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
-- Credential-free secure/insecure Docker and Kubernetes demo fixtures plus an optional CycloneDX SBOM vulnerability fixture for interviews and local verification.
+- Credential-free secure/insecure Docker and Kubernetes demo fixtures plus an optional CycloneDX SBOM vulnerability fixture for public demos and local verification.
 - Cross-platform `scripts/verify_demo.py` smoke verifier that exercises the installed CLI, deterministic security gates, JSON output, and HTML report generation.
-- GitHub Actions source-install smoke job that installs Blacklight non-editably with `pip install .` and runs the same credential-free demo used by contributors/interviewers.
-- Interview walkthrough documenting architecture, deterministic/AI boundaries, false-positive controls, live-provider talking points, and honest future-work boundaries.
+- GitHub Actions source-install smoke job that installs Blacklight non-editably with `pip install .` and runs the same credential-free demo used by contributors and users.
+- Public demo guide documenting architecture, deterministic/AI boundaries, false-positive controls, live-provider talking points, and honest future-work boundaries.
 
 - Opt-in Docker `sbom` scanner for CycloneDX/SPDX JSON Package URL vulnerability matching against OSV.dev.
 - Batched OSV package queries with pagination, vulnerability-detail retrieval, deterministic severity mapping, and explicit INFO/ERROR handling when package coordinates or vulnerability details are incomplete.
