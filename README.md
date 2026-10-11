@@ -35,7 +35,7 @@ The optional SBOM demo requires internet access to OSV.dev:
 python scripts/verify_demo.py --online
 ```
 
-See [docs/interview-demo.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/interview-demo.md) for the short demo script, architecture talking points, and what each command proves.
+See [docs/demo-guide.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/demo-guide.md) for the short demo script, architecture talking points, and what each command proves.
 
 ## Current capabilities
 
@@ -377,7 +377,7 @@ The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_fl
 
 ## Project status and future work
 
-The portfolio/demo milestone is complete: Blacklight has a reusable scanner registry, deterministic findings, risk correlations, independent coverage confidence, CI/CD gates, JSON/HTML reporting, AWS scanning, Docker static/runtime/SBOM scanning, Kubernetes static/live/RBAC/posture/admission scanning, Linux server scanning over read-only SSH, contributor documentation, and a credential-free end-to-end demo verified in CI.
+The public demo milestone is complete: Blacklight has a reusable scanner registry, deterministic findings, risk correlations, independent coverage confidence, CI/CD gates, JSON/HTML reporting, AWS scanning, Docker static/runtime/SBOM scanning, Kubernetes static/live/RBAC/posture/admission scanning, Linux server scanning over read-only SSH, contributor documentation, and a credential-free end-to-end demo verified in CI.
 
 The following are deliberate future extensions, not blockers for the current source-based tool:
 
