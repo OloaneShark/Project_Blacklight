@@ -1,5 +1,9 @@
 # Project Blacklight
 
+[![Blacklight CI](https://github.com/OloaneShark/Project_Blacklight/actions/workflows/ci.yml/badge.svg)](https://github.com/OloaneShark/Project_Blacklight/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-informational)
+![License](https://img.shields.io/badge/license-MIT-informational)
+
 **Project Blacklight is an open-source cloud, container, Kubernetes, and Linux server security scanning and risk-visibility toolkit.**
 
 Blacklight reveals security weaknesses that are easy to miss in cloud and workload configuration noise. Detection is deterministic: provider APIs and explicit security checks decide what is wrong. An optional external analyst interface can explain completed Blacklight JSON reports, but analyst output never creates, suppresses, or changes security findings.
