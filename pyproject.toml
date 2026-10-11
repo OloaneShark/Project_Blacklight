@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "project-blacklight-security"
 dynamic = ["version"]
-description = "Open-source cloud, container, Kubernetes, and Linux server security scanning toolkit."
+description = "Deterministic cloud, container, Kubernetes, SBOM, and Linux server security scanning toolkit."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
   { name = "Dennis Oloane" }
 ]
-keywords = ["cybersecurity", "aws", "cloud-security", "container-security", "docker", "kubernetes", "security-scanner", "devsecops", "linux-security", "ssh"]
+keywords = ["cybersecurity", "aws", "cloud-security", "container-security", "docker", "kubernetes", "security-scanner", "devsecops", "linux-security", "ssh", "sbom", "vulnerability-scanning", "osv"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -40,6 +40,7 @@ blacklight = "blacklight_security.cli:main"
 Homepage = "https://github.com/OloaneShark/Project_Blacklight"
 Repository = "https://github.com/OloaneShark/Project_Blacklight"
 Documentation = "https://github.com/OloaneShark/Project_Blacklight/tree/main/docs"
+Demo = "https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/interview-demo.md"
 Changelog = "https://github.com/OloaneShark/Project_Blacklight/blob/main/CHANGELOG.md"
 Issues = "https://github.com/OloaneShark/Project_Blacklight/issues"
 
