@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: blacklight-insecure-demo
+  namespace: default
+spec:
+  hostNetwork: true
+  hostPID: true
+  securityContext:
+    runAsUser: 0
+    seccompProfile:
+      type: Unconfined
+  volumes:
+    - name: host-root
+      hostPath:
+        path: /
+  containers:
+    - name: app
+      image: nginx:latest
+      securityContext:
+        privileged: true
+        allowPrivilegeEscalation: true
+        capabilities:
+          add:
+            - ALL
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+      env:
+        - name: API_TOKEN
+          value: demo-placeholder-not-a-real-secret
+      volumeMounts:
+        - name: host-root
+          mountPath: /host
