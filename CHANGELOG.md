@@ -6,117 +6,86 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Credential-free secure/insecure Docker and Kubernetes demo fixtures plus an optional CycloneDX SBOM vulnerability fixture for interviews and local verification.
+- Cross-platform `scripts/verify_demo.py` smoke verifier that exercises the installed CLI, deterministic security gates, JSON output, and HTML report generation.
+- GitHub Actions source-install smoke job that installs Blacklight non-editably with `pip install .` and runs the same credential-free demo used by contributors/interviewers.
+- Interview walkthrough documenting architecture, deterministic/AI boundaries, false-positive controls, live-provider talking points, and honest future-work boundaries.
+
 - Opt-in Docker `sbom` scanner for CycloneDX/SPDX JSON Package URL vulnerability matching against OSV.dev.
 - Batched OSV package queries with pagination, vulnerability-detail retrieval, deterministic severity mapping, and explicit INFO/ERROR handling when package coordinates or vulnerability details are incomplete.
 - SBOM scanner unit, registry, CLI gate, OSV version-rule, pagination, network-failure, and documentation coverage without uploading source code or image layers.
-
-### Added
 
 - Non-scoring live ServiceAccount token-use identity inventory for Pods whose token automount resolves to enabled.
 - Deterministic `kubernetes.serviceaccount.token_with_dangerous_rbac` correlation that matches the exact ServiceAccount subject across posture and RBAC findings.
 - Consolidated +30 cluster-admin, +25 wildcard, and +15 Secret-read/pod-exec/impersonation correlation tiers with cross-identity false-positive tests.
 
-### Added
-
 - Live Kubernetes `admission` scanner for Pod Security Admission enforcement and validating/mutating webhook fail-open posture.
 - Conservative Pod Security severity handling for missing, privileged, baseline, restricted, and unrecognized enforce labels on non-system namespaces with live Pods.
 - Admission webhook LOW/MEDIUM fail-open findings based on explicit `failurePolicy=Ignore` and wildcard match breadth, with unit, CLI-gate, shell-safety, permission-gap, and documentation coverage.
-
-### Added
 
 - Deeper live Docker runtime checks for sensitive host bind mounts, individually added dangerous Linux capabilities, host device passthrough/device-cgroup rules, and host UTS/cgroup namespaces.
 - Deterministic `docker.daemon.root_with_writable_sensitive_host_mount` risk correlation for same-container root configuration plus writable sensitive host exposure.
 - Docker runtime unit, CLI gate, correlation-boundary, and documentation coverage for the new checks.
 
-### Added
-
 - Live Kubernetes `posture` scanner for default-ServiceAccount token automount, namespace NetworkPolicy presence, and explicit namespace-wide allow-all policies.
 - Conservative LOW/MEDIUM severity boundaries that avoid treating missing policy objects as proof of public exposure or effective CNI behavior.
 - Posture scanner unit, registry, CLI gate, shell-safety, partial-permission, and documentation coverage.
-
-### Added
 
 - Live Kubernetes `rbac` scanner that resolves RoleBinding/ClusterRoleBinding grants to their referenced live roles.
 - Deterministic bound-permission checks for wildcard access, Secret reads, pod exec, impersonation, and broad built-in cluster-admin subjects.
 - RBAC scanner unit, registry, CLI gate, shell-safety, permission-gap, and documentation coverage.
 
-### Added
-
 - Same-container Docker runtime correlations for privileged + Docker-socket access and privileged + non-loopback published ports.
 - Same-Pod Kubernetes live-cluster correlations for privileged + hostPath and privileged + hostPort combinations.
 - False-positive boundary tests proving runtime correlations do not cross unrelated container/Pod resource IDs.
-
-### Added
 
 - Explicit `kubernetes --service cluster` scanner for read-only live Pod and Service inspection through kubectl.
 - Reuse of deterministic Kubernetes workload checks against live admitted Pod specs with `kubernetes.cluster.*` check IDs.
 - LOW live Service exposure inventory for NodePort, LoadBalancer, externalIPs, and load-balancer ingress without public-reachability overclaims.
 - Optional `--context` selection, kubectl shell-safety/timeouts, partial-permission coverage handling, and live-cluster tests/documentation while preserving manifest scanning as the default.
 
-### Added
-
 - Explicit `docker --service daemon` scanner for read-only inspection of currently running local containers.
 - Deterministic runtime findings for privileged containers, host namespaces, Docker-socket mounts, ALL capabilities, unconfined runtime profiles, configured root users, and broad host-port publication.
 - Docker daemon scanner, registry, CLI-gate, shell-safety, and documentation coverage while preserving Dockerfile scanning as the default Docker service.
-
-### Added
 
 - Linux server `sshd` scanner using read-only OpenSSH `sshd -T` effective-configuration evaluation.
 - Deterministic checks for selected legacy SSH algorithms, StrictModes, GatewayPorts + TCP forwarding, PermitUserEnvironment, and HostbasedAuthentication.
 - Explicit context/coverage handling so unavailable `sshd -T` evaluation becomes INFO/ERROR rather than reconstructed guesses.
 - Effective OpenSSH scanner unit, registry, CLI gate, and documentation coverage.
 
-### Added
-
 - Linux server `tls` scanner for bounded localhost certificate inspection on selected common TLS ports already observed listening.
 - Independent expiry and self-signed findings with HIGH expired, MEDIUM <=30-day expiry, and INFO self-signed handling.
 - TLS scanner unit, registry, CLI gate, and documentation coverage without hostname/public-reachability overclaims.
 
-### Added
-
 - Linux server `services` scanner for explicit systemd state of selected legacy/cleartext-capable services.
 - HIGH findings for active Telnet/rsh/rlogin/rexec units, MEDIUM for TFTP, and INFO-only review signals for FTP-capable daemons and xinetd.
 - Service scanner unit, registry, CLI gate, and documentation coverage.
-
-### Added
 
 - Reusable Linux server target profiles loaded from TOML with a default `~/.blacklight/server-targets.toml` path.
 - `--target-profile` and `--targets-file` server CLI options with command-line connection overrides.
 - Strict profile schema that permits connection metadata only and rejects password/secret/private-key-content fields.
 - Server profile example, loader tests, CLI resolution tests, and target-profile scan metadata.
 
-### Added
-
 - Cache-only DNF `updateinfo` security-advisory inspection for Linux server package scans.
 - DNF advisory evidence including advisory ID, vendor severity label, affected package, deduplication, and explicit coverage errors when advisory metadata cannot be inspected.
-
-### Added
 
 - Linux server `packages` scanner for cache-only APT and DNF pending-update visibility.
 - APT security-origin detection when simulated candidate updates explicitly reference `-security` repositories.
 - Package metadata snapshot evidence that records Blacklight did not refresh repositories or install packages.
 - Package scanner unit, registry, CLI gate, and server-documentation coverage.
 
-### Added
-
 - Linux server `auth` scanner for selected PAM authentication policy, connected-account password state, and best-effort local shadow account-state classification.
 - Explicit detection for active `pam_permit.so`, `pam_unix.so nullok`, and empty local password fields without returning password hashes.
 - Deterministic `server.auth.empty_password_with_pam_nullok` risk correlation when both conditions occur on the same server.
 - Authentication scanner unit, registry, CLI gate, risk, and documentation coverage.
 
-### Added
-
 - Linux server `accounts` scanner for duplicate UIDs, login-capable system accounts, selected privileged-group memberships, broad direct `NOPASSWD: ALL` sudo rules, and sudoers readability coverage.
 - Privilege-inventory handling that distinguishes normal administrative groups from Docker/LXD root-equivalent management access without assuming either is unintended.
 - Account scanner unit, registry, CLI gate, and server-documentation coverage.
 
-### Added
-
 - Linux server `hardening` scanner for sensitive system-file permissions, connected-account SSH key-path permissions, and supported automatic security-update posture.
 - Read-only APT/DNF update-posture inspection that never refreshes repositories, installs packages, invokes sudo, or mutates timers.
 - Host-hardening scanner registration, tests, and server-scanning documentation.
-
-### Added
 
 - Read-only Linux server baseline scanning through `blacklight scan server --host <host>` using the local OpenSSH client in non-interactive mode.
 - Deterministic checks for explicit insecure SSH directives, SSH daemon configuration write permissions, additional UID 0 accounts, and world-writable Docker socket access.
@@ -133,6 +102,10 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Changed
 
+- README now presents Blacklight as a public-alpha/demo-ready core with a five-minute credential-free proof path before the detailed provider documentation.
+- Normal user setup now uses a non-editable source install (`python -m pip install .`), while contributor setup remains editable.
+- CI lint scope now includes demo scripts and the installed CLI is smoke-tested after both editable and clean source installs.
+- Consolidated the Unreleased changelog into one Added section for a cleaner project history.
 - Project Blacklight is source-only again: users clone, fork, or download the GitHub repository and run the CLI from a Python environment.
 - GitHub Actions now focuses on linting and testing the source project.
 - Added dedicated AWS credential setup guidance that keeps secrets outside the repository.
