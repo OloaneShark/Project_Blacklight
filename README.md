@@ -4,7 +4,34 @@
 
 Blacklight reveals security weaknesses that are easy to miss in cloud and workload configuration noise. Detection is deterministic: provider APIs and explicit security checks decide what is wrong. An optional external analyst interface can explain completed Blacklight JSON reports, but analyst output never creates, suppresses, or changes security findings.
 
-> Status: **early alpha / active development**
+> Status: **public alpha / demo-ready core** — deterministic scanners, reports, CI gates, and credential-free smoke demos are implemented; broader provider coverage remains active development.
+
+## 5-minute local demo
+
+The repository includes safe and intentionally insecure Docker/Kubernetes fixtures so Blacklight can be demonstrated without AWS credentials, a Docker daemon, a Kubernetes cluster, or real secrets.
+
+After installation:
+
+```bash
+python scripts/verify_demo.py
+```
+
+The verifier exercises the installed `blacklight` command, confirms clean fixtures stay clean, confirms insecure fixtures fail `--fail-on high`, and generates JSON plus HTML reports.
+
+To walk through the commands manually:
+
+```bash
+blacklight scan docker --path examples/demo/docker/insecure/Dockerfile --fail-on high
+blacklight scan kubernetes --path examples/demo/kubernetes/insecure.yaml --fail-on high
+```
+
+The optional SBOM demo requires internet access to OSV.dev:
+
+```bash
+python scripts/verify_demo.py --online
+```
+
+See [docs/interview-demo.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/interview-demo.md) for the short demo script, architecture talking points, and what each command proves.
 
 ## Current capabilities
 
@@ -46,22 +73,25 @@ Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e .
+python -m pip install .
 ```
 
 macOS / Linux:
 
 ```bash
 source .venv/bin/activate
-python -m pip install -e .
+python -m pip install .
 ```
+
+A normal source install is intentionally non-editable. Contributor setup remains editable so code changes are reflected immediately.
 
 For contributors:
 
 ```bash
 python -m pip install -e ".[dev]"
 pytest -q
-ruff check blacklight_security tests
+ruff check blacklight_security tests scripts
+python scripts/verify_demo.py
 ```
 
 ## AWS credentials and least privilege
@@ -341,18 +371,18 @@ The CLI parses commands and hands execution to the scan runner. The runner resol
 
 The original CloudGuard Flask dashboard is preserved under `legacy/cloudguard_flask/` for history and reference. It is not the current Blacklight entry point.
 
-## Roadmap status
+## Project status and future work
 
-The Blacklight core is implemented as a source-based CLI project: deterministic AWS scanning, Dockerfile scanning, Kubernetes manifest scanning, read-only Linux server scanning, shared risk/coverage/gates, JSON/HTML reporting, contributor documentation, and an optional external analyst interface.
+The portfolio/demo milestone is complete: Blacklight has a reusable scanner registry, deterministic findings, risk correlations, independent coverage confidence, CI/CD gates, JSON/HTML reporting, AWS scanning, Docker static/runtime/SBOM scanning, Kubernetes static/live/RBAC/posture/admission scanning, Linux server scanning over read-only SSH, contributor documentation, and a credential-free end-to-end demo verified in CI.
 
-Future expansion is intentionally a new phase rather than unfinished core work:
+The following are deliberate future extensions, not blockers for the current source-based tool:
 
-- deeper Linux server service/configuration checks and broader package-manager security metadata
-- deeper AWS/Docker/Kubernetes checks
-- deeper Kubernetes policy inspection and direct Docker image/SBOM generation plus vulnerability remediation depth
-- additional cloud providers
-- packaging or UI work only if the project direction calls for it later
+- deeper AWS, Linux, Docker, and Kubernetes service-specific checks
+- direct Docker image package inventory/SBOM generation instead of requiring an existing SBOM
+- richer fixed-version/remediation intelligence for vulnerability results
+- additional cloud providers such as Azure and GCP
 - richer third-party scanner/analyst extension points
+- packaging or UI work only if project direction later calls for it
 
 See [docs/how-blacklight-works.md](https://github.com/OloaneShark/Project_Blacklight/blob/main/docs/how-blacklight-works.md) for the end-to-end architecture.
 
