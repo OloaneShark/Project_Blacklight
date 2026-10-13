@@ -84,6 +84,10 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("."),
         help="Dockerfile or project directory to scan (default: current directory)",
     )
+    docker.add_argument(
+        "--image",
+        help="Existing local Docker image reference for --service image",
+    )
     _add_report_options(docker)
 
     kubernetes = providers.add_parser(
@@ -253,7 +257,14 @@ def _run_docker(args: argparse.Namespace) -> int:
     if not _validate_output_args(args):
         return 2
 
-    target = DockerScanTarget(args.path)
+    if args.service == "image" and not args.image:
+        print("Blacklight Docker image target error: --image is required", file=sys.stderr)
+        return 2
+    if args.image and args.service not in {"image", "all"}:
+        print("Blacklight Docker image target error: --image requires --service image or all", file=sys.stderr)
+        return 2
+
+    target = DockerScanTarget(args.path, image_ref=args.image)
     result = ScanRunner("docker", target).run(args.service)
     return _finish_scan(args, result)
 

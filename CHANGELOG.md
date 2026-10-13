@@ -6,6 +6,10 @@ All notable changes to Project Blacklight will be documented here.
 
 ### Added
 
+- Opt-in `docker --service image --image NAME` scanning: inspect an existing local image, generate CycloneDX package inventory with Syft, and reuse deterministic OSV package matching.
+- Local image SHA-256 identity and inventory provenance in normalized `docker.image.*` findings; explicit coverage errors for missing tools, missing images, invalid inventory, and OSV failures.
+- Docker image pipeline, CLI gate, no-pull safety, and regression tests without adding a dependency for static Dockerfile scanning.
+
 - Credential-free secure/insecure Docker and Kubernetes demo fixtures plus an optional CycloneDX SBOM vulnerability fixture for public demos and local verification.
 - Cross-platform `scripts/verify_demo.py` smoke verifier that exercises the installed CLI, deterministic security gates, JSON output, and HTML report generation.
 - GitHub Actions source-install smoke job that installs Blacklight non-editably with `pip install .` and runs the same credential-free demo used by contributors and users.

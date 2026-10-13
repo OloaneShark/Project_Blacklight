@@ -21,7 +21,7 @@ def test_registry_selects_one_scanner():
 
 
 def test_builtin_docker_scanner_is_registered():
-    assert scanner_names("docker") == ["daemon", "dockerfile", "sbom"]
+    assert scanner_names("docker") == ["daemon", "dockerfile", "image", "sbom"]
 
     specs = scanner_specs("docker", "dockerfile")
     assert len(specs) == 1
@@ -143,3 +143,10 @@ def test_registry_selects_docker_sbom_scanner():
     assert len(specs) == 1
     assert specs[0].provider == "docker"
     assert specs[0].name == "sbom"
+
+
+def test_registry_selects_docker_image_scanner():
+    specs = scanner_specs("docker", "image")
+    assert len(specs) == 1
+    assert specs[0].provider == "docker"
+    assert specs[0].name == "image"

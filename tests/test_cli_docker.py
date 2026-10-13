@@ -3,6 +3,7 @@ import subprocess
 from unittest.mock import patch
 
 from blacklight_security.cli import main
+from blacklight_security.scanners.docker.sbom import OSVClient
 
 def test_docker_cli_scans_dockerfile_and_returns_security_gate_failure(tmp_path):
     (tmp_path / "Dockerfile").write_text(
@@ -240,3 +241,54 @@ def test_docker_cli_can_run_sbom_scanner_and_gate_high_vulnerability(tmp_path, c
     assert exit_code == 1
     assert "Scanners: sbom" in output.out
     assert "known OSV vulnerability records" in output.out
+
+
+def test_docker_image_service_requires_explicit_image(capsys):
+    exit_code = main(["scan", "docker", "--service", "image"])
+    assert exit_code == 2
+    assert "--image is required" in capsys.readouterr().err
+
+
+def test_docker_image_cli_gates_known_high_vulnerability(capsys):
+    image_id = "sha256:" + "a" * 64
+    payload = json.dumps({
+        "bomFormat": "CycloneDX",
+        "components": [{
+            "type": "library",
+            "name": "example",
+            "purl": "pkg:pypi/example",
+            "version": "1.0.0",
+        }],
+    })
+    responses = [
+        subprocess.CompletedProcess([], 0, image_id, ""),
+        subprocess.CompletedProcess([], 0, payload, ""),
+    ]
+    record = {"id": "GHSA-test", "database_specific": {"severity": "HIGH"}}
+
+    with (
+        patch(
+            "blacklight_security.scanners.docker.image.subprocess.run",
+            side_effect=responses,
+        ) as run,
+        patch.object(OSVClient, "query_batch", return_value=[{"GHSA-test"}]),
+        patch.object(OSVClient, "fetch_records", return_value=({"GHSA-test": record}, {})),
+    ):
+        exit_code = main([
+            "scan", "docker", "--service", "image", "--image", "example/app:1.0",
+            "--fail-on", "high",
+        ])
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Scanners: image" in output.out
+    assert "known OSV vulnerability records" in output.out
+    assert all(call.kwargs["shell"] is False for call in run.call_args_list)
+
+
+def test_docker_image_flag_cannot_be_used_with_static_service(capsys):
+    exit_code = main([
+        "scan", "docker", "--service", "dockerfile", "--image", "example/app:1.0",
+    ])
+    assert exit_code == 2
+    assert "--service image or all" in capsys.readouterr().err

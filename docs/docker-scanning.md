@@ -48,6 +48,12 @@ Scan a CycloneDX or SPDX JSON SBOM against OSV.dev:
 blacklight scan docker --service sbom --path ./app.cdx.json
 ```
 
+Generate a package inventory directly from an existing local Docker image and scan it:
+
+```bash
+blacklight scan docker --service image --image example/app:1.2.3 --fail-on high
+```
+
 Run both static Dockerfile and live-daemon scanners:
 
 ```bash
@@ -186,11 +192,33 @@ sbom.json
 
 Blacklight currently consumes an existing SBOM; it does not generate one from a Docker image itself.
 
+## Direct Docker image vulnerability scanning
+
+The explicit `image` scanner removes the need to generate an SBOM yourself before scanning an existing local Docker image:
+
+```bash
+blacklight scan docker --service image --image nginx:1.27 --fail-on high
+```
+
+**Prerequisites:** a working Docker daemon with the chosen image already present, and the [Anchore Syft CLI](https://github.com/anchore/syft) installed on `PATH`. This image-specific feature does not change the Python dependencies or the behavior of ordinary Dockerfile scans.
+
+Blacklight first runs a read-only `docker image inspect` to confirm the image exists locally and capture its immutable SHA-256 image identity. It then invokes Syft using the local Docker source (`syft scan IMAGE --from docker --output cyclonedx-json --quiet`) with an argument-list subprocess and a bounded timeout. **Blacklight does not run `docker pull`, build images, launch containers, or execute code from the scanned image.**
+
+Syft generates the CycloneDX JSON package inventory in memory. Blacklight extracts versioned Package URLs using the existing SBOM parser, deduplicates package coordinates, and reuses the same OSV query, severity, coverage, and report pipeline. No generated SBOM is stored on disk by default.
+
+The returned findings use `docker.image.*` check IDs and include the local image reference, immutable image ID, and `syft` inventory provenance. This also makes rescans of the same tag distinguishable when the underlying image digest changes.
+
+**Network/privacy boundary:** Blacklight submits detected package URLs and versions to OSV.dev. Local image layers, the full generated SBOM, source files, and secret values are not intentionally uploaded to OSV. Syft reads the local Docker source; a local image check happens first to avoid an implicit registry pull. For sensitive package inventories, decide whether OSV's external API is acceptable before running the scan.
+
+If Docker, Syft, image inspection, inventory parsing, or OSV queries fail, Blacklight records `ERROR` rather than claiming no vulnerabilities. An image SBOM with no queryable package coordinates produces INFO rather than PASS. `--service all` without `--image` leaves image scanning unselected and produces informational context only.
+
+**Limitations:** vulnerability matching is limited to the packages Syft can identify and OSV can match from versioned PURLs. A PASS does not mean an image is free from vulnerabilities. Image-specific remediation and accurate distro backport interpretation remain separate future work.
+
 ## Current Docker boundaries
 
 Blacklight still does **not** yet:
 
-- generate package inventories/SBOMs directly from local Docker image layers
+- scan registry images that are not already in the local Docker daemon (by design)
 - inspect Docker Compose effective configuration
 - execute commands inside containers
 - mutate Docker daemon/container state
@@ -215,7 +243,7 @@ risk / coverage / CI gates
 console / JSON / HTML reports
 ```
 
-No AI model decides whether a Dockerfile, live-daemon, or SBOM vulnerability finding exists.
+No AI model decides whether a Dockerfile, live-daemon, generated-image inventory, or SBOM vulnerability finding exists.
 
 ## CI example
 
