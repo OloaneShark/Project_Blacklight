@@ -26,6 +26,7 @@ class DockerScanTarget:
     """Local Docker scan target passed through the shared Blacklight runner."""
 
     path: Path
+    image_ref: str | None = None
     region_name: None = None
     profile_name: None = None
 
