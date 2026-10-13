@@ -43,6 +43,7 @@ def load_builtin_scanners() -> None:
     from blacklight_security.scanners.docker import (
         DockerDaemonScanner,
         DockerfileScanner,
+        DockerImageScanner,
         DockerSBOMScanner,
     )
     from blacklight_security.scanners.kubernetes import (
@@ -77,6 +78,7 @@ def load_builtin_scanners() -> None:
 
     register_scanner("docker", "daemon", DockerDaemonScanner)
     register_scanner("docker", "dockerfile", DockerfileScanner)
+    register_scanner("docker", "image", DockerImageScanner)
     register_scanner("docker", "sbom", DockerSBOMScanner)
     register_scanner("kubernetes", "admission", KubernetesAdmissionScanner)
     register_scanner("kubernetes", "cluster", KubernetesClusterScanner)
