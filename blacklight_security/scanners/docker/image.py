@@ -175,11 +175,12 @@ class DockerImageScanner:
 
     @staticmethod
     def _image_finding(finding: Finding, *, image_ref: str, image_id: str) -> Finding:
-        is_package = finding.check_id == "docker.sbom.known_vulnerabilities"
+        is_package = (
+            finding.check_id == "docker.sbom.known_vulnerabilities"
+            and finding.resource_id not in {"SBOM", "osv.dev"}
+        )
         resource_id = (
-            f"{image_id}/{finding.resource_id}"
-            if is_package and finding.resource_id not in {"SBOM", "osv.dev"}
-            else image_id
+            f"{image_id}/{finding.resource_id}" if is_package else image_id
         )
         return replace(
             finding,
