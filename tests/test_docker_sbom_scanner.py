@@ -288,3 +288,29 @@ def test_sbom_resource_id_inserts_version_before_purl_qualifiers(tmp_path):
         finding.resource_id
         == "pkg:pypi/example@1.2.3?repository_url=https%3A%2F%2Fexample.test"
     )
+
+
+def test_sbom_scanner_preserves_parse_failure_when_other_sboms_match(tmp_path):
+    broken = tmp_path / "broken.cdx.json"
+    broken.write_text("{invalid", encoding="utf-8")
+    good = tmp_path / "good.cdx.json"
+    good.write_text(
+        json.dumps(
+            _cyclonedx({
+                "type": "library",
+                "name": "example",
+                "purl": "pkg:pypi/example",
+                "version": "1.0.0",
+            })
+        ),
+        encoding="utf-8",
+    )
+    with (
+        patch.object(OSVClient, "query_batch", return_value=[set()]),
+        patch.object(OSVClient, "fetch_records", return_value=({}, {})),
+    ):
+        findings = DockerSBOMScanner(DockerScanTarget(path=tmp_path)).scan()
+
+    checks = {finding.check_id: finding.severity for finding in findings}
+    assert checks["docker.sbom.parse"] is Severity.ERROR
+    assert checks["docker.sbom.known_vulnerabilities"] is Severity.PASS
