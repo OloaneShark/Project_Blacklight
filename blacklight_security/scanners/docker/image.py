@@ -8,7 +8,7 @@ from typing import Any
 
 from blacklight_security.models import Finding, Severity
 from blacklight_security.scanners.docker.dockerfile import DockerScanTarget
-from blacklight_security.scanners.docker.sbom import DockerSBOMScanner, SBOMPackage
+from blacklight_security.scanners.docker.sbom import DockerSBOMScanner
 
 
 _IMAGE_TIMEOUT = 20
@@ -26,10 +26,15 @@ class DockerImageScanner:
     def scan(self) -> list[Finding]:
         image_ref = self.image_ref
         if not isinstance(image_ref, str) or not image_ref.strip():
-            return [self._error(
-                "target",
-                "Docker image reference is required",
-                "Select an existing local image with --image.",
+            return [Finding(
+                check_id="docker.image.target",
+                provider="docker",
+                service="image",
+                resource_type="docker_image",
+                resource_id="local-image",
+                severity=Severity.INFO,
+                title="Docker image scanner was not given an image",
+                description="Select --image to inventory a local Docker image; no vulnerability conclusion was made.",
             )]
         image_ref = image_ref.strip()
         if image_ref.startswith("-") or any(ch.isspace() or ord(ch) < 32 for ch in image_ref):
@@ -60,7 +65,11 @@ class DockerImageScanner:
             )]
 
         image_id = inspected.stdout.strip()
-        if not image_id.startswith("sha256:") or len(image_id) != 71:
+        if (
+            not image_id.startswith("sha256:")
+            or len(image_id) != 71
+            or any(char not in "0123456789abcdefABCDEF" for char in image_id[7:])
+        ):
             return [self._error(
                 "image_id",
                 "Docker image identity could not be verified",
