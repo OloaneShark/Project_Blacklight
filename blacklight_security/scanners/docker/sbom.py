@@ -249,11 +249,28 @@ class DockerSBOMScanner:
             for package in packages:
                 packages_by_key.setdefault(package.query_key, package)
 
-        packages = list(packages_by_key.values())
+        return self.scan_packages(
+            list(packages_by_key.values()),
+            skipped_components=skipped_components,
+            sources=[str(path) for path in sbom_files],
+            source_label=str(self.target),
+        )
+
+    def scan_packages(
+        self,
+        packages: list[SBOMPackage],
+        *,
+        skipped_components: int = 0,
+        sources: list[str] | None = None,
+        source_label: str = "SBOM",
+    ) -> list[Finding]:
+        """Run the shared deterministic OSV analysis on versioned SBOM packages."""
+        sources = sources or [source_label]
+        findings: list[Finding] = []
         if not packages:
             findings.append(
                 self._finding(
-                    str(self.target),
+                    source_label,
                     "docker.sbom.packages",
                     Severity.INFO,
                     "SBOM contains no queryable versioned package URLs",
@@ -262,7 +279,7 @@ class DockerSBOMScanner:
                         "submit to OSV. No vulnerability-clean claim was made."
                     ),
                     evidence={
-                        "sbom_files": [str(path) for path in sbom_files],
+                        "sbom_files": sources,
                         "skipped_components": skipped_components,
                     },
                 )
@@ -283,7 +300,7 @@ class DockerSBOMScanner:
                     "Verify network access to api.osv.dev and retry the SBOM scan.",
                     {
                         "package_count": len(packages),
-                        "sbom_files": [str(path) for path in sbom_files],
+                        "sbom_files": sources,
                     },
                 )
             )
@@ -342,7 +359,7 @@ class DockerSBOMScanner:
                     ),
                     evidence={
                         "package_count": len(packages),
-                        "sbom_files": [str(path) for path in sbom_files],
+                        "sbom_files": sources,
                     },
                 )
             )
