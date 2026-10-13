@@ -254,6 +254,7 @@ class DockerSBOMScanner:
             skipped_components=skipped_components,
             sources=[str(path) for path in sbom_files],
             source_label=str(self.target),
+            prior_findings=findings,
         )
 
     def scan_packages(
@@ -263,10 +264,11 @@ class DockerSBOMScanner:
         skipped_components: int = 0,
         sources: list[str] | None = None,
         source_label: str = "SBOM",
+        prior_findings: list[Finding] | None = None,
     ) -> list[Finding]:
         """Run the shared deterministic OSV analysis on versioned SBOM packages."""
         sources = sources or [source_label]
-        findings: list[Finding] = []
+        findings: list[Finding] = list(prior_findings or [])
         if not packages:
             findings.append(
                 self._finding(
